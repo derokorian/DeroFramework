@@ -5,6 +5,7 @@
  * Date: 12/6/13
  */
 define('ROOT', dirname(__DIR__));
+define('DS', DIRECTORY_SEPARATOR);
 
 spl_autoload_register(function ($strClass)
 {
