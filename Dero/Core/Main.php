@@ -15,34 +15,55 @@ class Main
 
     public static function init()
     {
-        $strURI = trim($_SERVER['REQUEST_URI'], '/');
+        self::LoadRoute();
+    }
+
+    private static function LoadRoute()
+    {
+        $bRouteFound = false;
+        $strURI = trim($_SERVER['REDIRECT_URL'], '/');
+
+        // Load defind routes
         $aRoutes = [];
         $files = glob(ROOT . DIRECTORY_SEPARATOR . 'App' . DIRECTORY_SEPARATOR . 'Routes' . DIRECTORY_SEPARATOR . '*.php');
         foreach($files as $file)
             include_once $file;
+
+        $fLoadRoute = function(Array $aRoute)
+        {
+            $con = new $aRoute['controller']();
+            if( empty($aRoute['args']) )
+                $con->{$aRoute['method']}();
+            else
+            {
+                $args = [];
+                foreach($aRoute['args'] as $arg)
+                    $args[] = $aRoute['Match'][0][$arg];
+                $con->{$aRoute['method']}($args);
+            }
+        };
+
+        // Attempt to find the requested route
         foreach($aRoutes as $aRoute)
         {
-            if( preg_match_all($aRoute, $strURI, $match) )
+            if( preg_match($aRoute['pattern'], $strURI, $match) )
             {
+                $bRouteFound = true;
                 $aRoute['Request'] = $strURI;
                 $aRoute['Match'] = $match;
-                self::LoadRoute($aRoute);
+                $fLoadRoute($aRoute);
                 break;
             }
         }
-    }
 
-    private static function LoadRoute(Array $aRoute)
-    {
-        $con = new $aRoute['controller']();
-        if( empty($aRoute['args']) )
-            $con->{$aRoute['method']}();
+        // If route wasn't found, try to load default
+        if( !$bRouteFound && isset($aRoutes['default']) )
+        {
+            $fLoadRoute($aRoutes['default']);
+        }
         else
         {
-            $args = [];
-            foreach($aRoute['args'] as $arg)
-                $args[] = $aRoute['Match'][0][$arg];
-            $con->{$aRoute['method']}($args);
+            // ToDo: Need some handling here for undefined request and no default
         }
     }
 } 
