@@ -5,13 +5,15 @@
  */
 $routes['default'] = [
     'pattern' => '/^$/',
-    'controller' => 'BlogController',
+    'controller' => 'App\Controller\BlogController',
+    'dependencies' => 'App\Model\BlogModel',
     'method' => 'index',
     'args' => []
 ];
 $routes[] = [
     'pattern' => '#^blog/view/([0-9]+/)?$#i',
-    'controller' => 'BlogController',
+    'controller' => 'App\Controller\BlogController',
+    'dependencies' => 'App\Model\BlogModel',
     'method' => 'viewPost',
-    'args' => ['$1']
+    'args' => [1]
 ];

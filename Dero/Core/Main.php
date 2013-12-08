@@ -31,15 +31,32 @@ class Main
 
         $fLoadRoute = function(Array $aRoute)
         {
-            $con = new $aRoute['controller']();
+            if( empty($aRoute['dependencies']) )
+                $oController = new $aRoute['controller']();
+            else
+            {
+                $aDeps = array();
+                foreach( $aRoute['dependencies'] as $strDependency )
+                {
+                    if( class_exists($strDependency) )
+                    {
+                        $aDeps[] = new $strDependency();
+                    }
+                }
+                $oRef = new \ReflectionClass($aRoute['controller']);
+                $oController = $oRef->newInstanceArgs($aDeps);
+            }
+
             if( empty($aRoute['args']) )
-                $con->{$aRoute['method']}();
+                $oController->{$aRoute['method']}();
             else
             {
                 $args = [];
                 foreach($aRoute['args'] as $arg)
+                {
                     $args[] = $aRoute['Match'][0][$arg];
-                $con->{$aRoute['method']}($args);
+                }
+                $oController->{$aRoute['method']}($args);
             }
         };
 
