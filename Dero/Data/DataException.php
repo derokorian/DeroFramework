@@ -8,11 +8,4 @@ namespace Dero\Data;
  */
 class DataException extends \Exception {}
 
-class DataAccessException extends \Exception {}
-
-class DataReadException extends DataAccessException {}
-
-class DataWriteException extends DataAccessException {}
-
-
 ?>
