@@ -14,6 +14,11 @@ use Dero\Core\Config;
 abstract class PDOSqlite extends PDOWrapper
 {
     /**
+     * Opens a connection for a query
+     */
+    protected function OpenConnection($bIsRead){}
+    
+    /**
      * Prepares a query for execution
      * @param string $Query
      */

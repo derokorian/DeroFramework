@@ -12,7 +12,6 @@ use Dero\Core\Config;
  */
 class PDOMysql extends PDOWrapper
 {
-
     /**
      * Opens a connection for a query
      */
