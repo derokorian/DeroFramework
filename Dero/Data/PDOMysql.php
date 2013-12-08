@@ -12,6 +12,8 @@ use Dero\Core\Config;
  */
 class PDOMysql extends PDOWrapper
 {
+    private $oInstance;
+
     /**
      * Opens a connection for a query
      */
@@ -86,59 +88,6 @@ class PDOMysql extends PDOWrapper
                 $aOpts['Pass']
             );
             return $this->oInstance[$sType];
-        }
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @param string $Query
-     * @return PDOMysql allows method chaining
-     * @throws DataException
-     */
-    public function Prepare($Query)
-    {
-        $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
-        try
-        {
-            $this->oPDOStatement = $oCon->prepare($Query);
-            if( $this->oPDOStatement === FALSE )
-            {
-                $e = $oCon->errorInfo();
-                throw new DataException('Error preparing query in '. __CLASS__ . '::'
-                    . __FUNCTION__ . '(' . $e[2] . ')');
-            }
-            return $this;
-        }
-        catch (\Exception $e)
-        {
-            throw new DataException('Error preparing query in '. __CLASS__ . '::' . __FUNCTION__);
-        }
-
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @param string $Query
-     * @return PDOMysql allows method chaining
-     * @throws DataException
-     */
-    public function Query($Query)
-    {
-        $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
-        try
-        {
-            $this->oPDOStatement = $oCon->query($Query);
-            if( $this->oPDOStatement === FALSE )
-            {
-                $e = $oCon->errorInfo();
-                throw new DataException('Error preparing query in '. __CLASS__ . '::'
-                    . __FUNCTION__ . '(' . $e[2] . ')');
-            }
-            return $this;
-        }
-        catch (\Exception $e)
-        {
-            throw new DataException('Error preparing query in '. __CLASS__ . '::' . __FUNCTION__);
         }
     }
 }

@@ -12,7 +12,6 @@ use Dero\Core\Config;
  */
 abstract class PDOWrapper implements DataInterface
 {
-    protected $oInstance;
     protected $oPDOStatement;
     protected $sInstance;
 
@@ -32,16 +31,57 @@ abstract class PDOWrapper implements DataInterface
     abstract protected function OpenConnection($sConType);
 
     /**
-     * Prepares a query for execution
+     * (non-PHPdoc)
      * @param string $Query
+     * @return PDOMysql allows method chaining
+     * @throws DataException
      */
-    abstract public function Prepare($Query);
+    public function Prepare($Query)
+    {
+        $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
+        try
+        {
+            $this->oPDOStatement = $oCon->prepare($Query);
+            if( $this->oPDOStatement === FALSE )
+            {
+                $e = $oCon->errorInfo();
+                throw new DataException('Error preparing query in '. __CLASS__ . '::'
+                    . __FUNCTION__ . '(' . $e[2] . ')');
+            }
+            return $this;
+        }
+        catch (\Exception $e)
+        {
+            throw new DataException('Error preparing query in '. __CLASS__ . '::' . __FUNCTION__);
+        }
+
+    }
 
     /**
-     * Executes a query directly
+     * (non-PHPdoc)
      * @param string $Query
+     * @return PDOMysql allows method chaining
+     * @throws DataException
      */
-    abstract public function Query($Query);
+    public function Query($Query)
+    {
+        $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
+        try
+        {
+            $this->oPDOStatement = $oCon->query($Query);
+            if( $this->oPDOStatement === FALSE )
+            {
+                $e = $oCon->errorInfo();
+                throw new DataException('Error preparing query in '. __CLASS__ . '::'
+                    . __FUNCTION__ . '(' . $e[2] . ')');
+            }
+            return $this;
+        }
+        catch (\Exception $e)
+        {
+            throw new DataException('Error preparing query in '. __CLASS__ . '::' . __FUNCTION__);
+        }
+    }
 
     /**
      * (non-PHPdoc)

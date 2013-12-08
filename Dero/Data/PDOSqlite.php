@@ -17,16 +17,4 @@ abstract class PDOSqlite extends PDOWrapper
      * Opens a connection for a query
      */
     protected function OpenConnection($bIsRead){}
-    
-    /**
-     * Prepares a query for execution
-     * @param string $Query
-     */
-    public function Prepare($Query){}
-
-    /**
-     * Executes a query directly
-     * @param string $Query
-     */
-    public function Query($Query){}
 }
