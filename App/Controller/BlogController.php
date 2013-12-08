@@ -10,7 +10,7 @@
 
 namespace App\Controller;
 
-class BlogController implements \Dero\Core\ControllerInterface
+class BlogController
 {
     public function __construct(\App\Model\BlogModel $oBlogModel)
     {

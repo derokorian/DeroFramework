@@ -6,7 +6,7 @@ namespace Dero\Data;
  * Base Model class from which all models inherit
  * @author Ryan Pallas
  */
-abstract class BaseModel implements ModelInterface
+abstract class BaseModel
 {
     protected $DB;
 

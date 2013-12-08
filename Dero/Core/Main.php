@@ -15,6 +15,14 @@ class Main
 
     public static function init()
     {
+        // Load settings
+        $files = glob(dirname(__DIR__) . DS . 'Settings/*.php');
+        foreach($files as $file)
+        {
+            if( is_readable($file) )
+                require_once $file;
+        }
+
         self::LoadRoute();
     }
 
@@ -25,7 +33,7 @@ class Main
 
         // Load defind routes
         $aRoutes = [];
-        $files = glob(ROOT . DIRECTORY_SEPARATOR . 'App' . DIRECTORY_SEPARATOR . 'Routes' . DIRECTORY_SEPARATOR . '*.php');
+        $files = glob(ROOT . DS . 'App' . DS . 'Routes' . DS . '*.php');
         foreach($files as $file)
             include_once $file;
 

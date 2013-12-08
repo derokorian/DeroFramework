@@ -12,10 +12,10 @@ spl_autoload_register(function ($strClass)
     $strFile = $strClass . '.php';
     $strNameSpace = '';
     if ( ($iLast = strripos($strClass, '\\')) !== FALSE ) {
-        $strNameSpace = DIRECTORY_SEPARATOR . str_replace('\\',DIRECTORY_SEPARATOR,substr($strClass, 0, $iLast));
+        $strNameSpace = DS . str_replace('\\',DS,substr($strClass, 0, $iLast));
         $strFile = substr($strClass, $iLast + 1) . '.php';
     }
-    $strFilePath = ROOT . $strNameSpace . DIRECTORY_SEPARATOR . $strFile;
+    $strFilePath = ROOT . $strNameSpace . DS . $strFile;
     if( is_readable($strFilePath) ) {
         require_once $strFilePath;
         return TRUE;

@@ -17,8 +17,8 @@ class Config
     {
         if( !array_key_exists($file,self::$Config) ) {
             $config = [];
-            if( is_readable(ROOT . '/config/' . $file . '.php') )
-                include ROOT . '/config/' . $file . '.php';
+            if( is_readable(ROOT . DS . 'config' . DS . $file . '.php') )
+                include ROOT . DS . 'config' . DS . $file . '.php';
             self::$Config = array_merge(self::$Config,$config);
         }
     }

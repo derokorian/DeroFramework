@@ -4,7 +4,7 @@ namespace Dero\Data;
 use Dero\Core\Config;
 
 /**
- * PDOMySQL wrapper
+ * PDO wrapper for MySQL
  * @author Ryan Pallas
  * @package DeroFramework
  * @namespace Dero\Data
