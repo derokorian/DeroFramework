@@ -3,11 +3,11 @@
 /**
  * ModelInterface
  * @author Ryan Pallas
- * @package SampleSite
+ * @package DeroFramework
  * @namespace Dero\Core
  * @since 2013-12-07
  */
-namespace Dero\Core;
+namespace Dero\Data;
 
 interface ModelInterface
 {

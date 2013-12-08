@@ -16,4 +16,14 @@ class BlogController implements \Dero\Core\ControllerInterface
     {
 
     }
+
+    public function index()
+    {
+        echo '<h2>You are viewing the blog index.</h2>';
+    }
+
+    public function viewPost($iPostId)
+    {
+        printf('<h2>You are viewing post number #$d</h2>', $iPostId);
+    }
 }

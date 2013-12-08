@@ -9,7 +9,7 @@
  */
 namespace App\Model;
 
-class BlogModel implements \Dero\Core\ModelInterface
+class BlogModel implements \Dero\Data\ModelInterface
 {
     public function __constructor()
     {
