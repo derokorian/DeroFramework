@@ -10,84 +10,90 @@ use Dero\Core\Config;
  * @namespace Dero\Data
  * @see DataInterface
  */
-class PDOMySQL implements DataInterface
+class PDOMysql extends PDOWrapper
 {
-    private $oReadInstance;
-    private $oWriteInstance;
-    private $stmt;
-    private $inst;
-
-    /**
-     * Constructor for MySQL wrapper
-     * @param string $Instance name of database connection defined in configuration
-     * @throws \InvalidArgumentException
-     */
-    public function __construct($Instance = NULL)
-    {
-        if( is_null($Instance) || !is_string($Instance) )
-            throw new \InvalidArgumentException('PDOMysql requires an instance');
-        else
-            $this->inst = $Instance;
-    }
-
-    /**
-     * Opens a connection for read-only operations
-     * @throws DataException
-     */
-    private function OpenReadConnection()
-    {
-        if( !isset($this->oReadInstance) ) {
-            try {
-                $dsn = 'mysql:dbname=' . Config::GetValue('database', $this->inst, 'read', 'name')
-                        . ';port=' . Config::GetValue('database', $this->inst, 'read', 'port')
-                        . ';host=' . Config::GetValue('database', $this->inst, 'read', 'host');
-                $this->oReadInstance = new \PDO($dsn,
-                        Config::GetValue('database', $this->inst, 'read', 'User'),
-                        Config::GetValue('database', $this->inst, 'read', 'pass'));
-            } catch (\Exception $e) {
-                throw new DataException('Database connectivity error.');
-            }
-        }
-        return $this->oReadInstance;
-    }
-
-    /**
-     * Opens a connection to allow write operations
-     * @throws DataException
-     */
-    private function OpenWriteConnection()
-    {
-        if( !isset(self::$_WriteInstance) ) {
-            try {
-                $dsn = 'mysql:dbname=' . Config::GetValue('database', $this->inst, 'write', 'name')
-                        . ';port=' . Config::GetValue('database', $this->inst, 'write', 'port')
-                        . ';host=' . Config::GetValue('database', $this->inst, 'write', 'host');
-                $this->oWriteInstance = new \PDO($dsn,
-                        Config::GetValue('database', $this->inst, 'write', 'User'),
-                        Config::GetValue('database', $this->inst, 'write', 'pass'));
-            } catch (\Exception $e) {
-                throw new DataException('Database connectivity error.');
-            }
-        }
-        return $this->oWriteInstance;
-    }
 
     /**
      * Opens a connection for a query
      */
-    private function OpenConnection($bIsRead)
+    protected function OpenConnection($bIsRead)
     {
-        if( $this->stmt ) unset($this->stmt);
-        if( $bIsRead )
-            return $this->OpenReadConnection();
+        if( $this->oPDOStatement ) unset($this->oPDOStatement);
+        $aConfigArgs = [
+            'database',
+            $this->sInstance
+        ];
+        $sType = NULL;
+        if( !is_null(call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'write'))) &&
+            !is_null(call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'read'))))
+        {
+            if( $bIsRead )
+            {
+                if( $this->oInstance['read'] )
+                    return $this->oInstance['read'];
+                $aConfigArgs[] = $sType = 'read';
+            }
+            else
+            {
+                if( $this->oInstance['write'] )
+                    return $this->oInstance['write'];
+                $aConfigArgs[] = $sType = 'write';
+            }
+        }
+        elseif( !is_null(Config::GetValue('database', $this->sInstance, 'read')))
+        {
+            if( $this->oInstance['read'] )
+                return $this->oInstance['read'];
+            $aConfigArgs[] = $sType = 'read';
+        }
+        elseif( !is_null(Config::GetValue('database', $this->sInstance, 'write')))
+        {
+            if( $this->oInstance['write'] )
+                return $this->oInstance['write'];
+            $aConfigArgs[] = $sType = 'write';
+        }
+        elseif( !is_null(Config::GetValue('database', $this->sInstance, 'name')))
+        {
+            if( isset($this->oInstance) )
+                return $this->oInstance;
+        }
         else
-            return $this->OpenWriteConnection();
+        {
+            throw new \UnexpectedValueException('Database connection information not properly defined');
+        }
+        $aOpts['Name'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'name'));
+        $aOpts['Host'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'host'));
+        $aOpts['User'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'user'));
+        $aOpts['Pass'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'pass'));
+        $aOpts['Port'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'port')) ?: 3306;
+        if( in_array(null, $aOpts) )
+        {
+            throw new \UnexpectedValueException('Database connection information not properly defined');
+        }
+        if( is_null($sType) )
+        {
+            $this->oInstance = new \PDO(
+                sprintf('mysql:dbname=%s;host=%s;port=%d',$aOpts['Name'],$aOpts['Host'], $aOpts['Port']),
+                $aOpts['User'],
+                $aOpts['Pass']
+            );
+            return $this->oInstance;
+        }
+        else
+        {
+            $this->oInstance[$sType] = new \PDO(
+                sprintf('mysql:dbname=%s;host=%s;port=%d',$aOpts['Name'],$aOpts['Host'], $aOpts['Port']),
+                $aOpts['User'],
+                $aOpts['Pass']
+            );
+            return $this->oInstance[$sType];
+        }
     }
 
     /**
      * (non-PHPdoc)
      * @param string $Query
-     * @return Mysql allows method chaining
+     * @return PDOMysql allows method chaining
      * @throws DataException
      */
     public function Prepare($Query)
@@ -95,8 +101,8 @@ class PDOMySQL implements DataInterface
         $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
         try
         {
-            $this->stmt = $oCon->prepare($Query);
-            if( $this->stmt === FALSE )
+            $this->oPDOStatement = $oCon->prepare($Query);
+            if( $this->oPDOStatement === FALSE )
             {
                 $e = $oCon->errorInfo();
                 throw new DataException('Error preparing query in '. __CLASS__ . '::'
@@ -114,7 +120,7 @@ class PDOMySQL implements DataInterface
     /**
      * (non-PHPdoc)
      * @param string $Query
-     * @return Mysql allows method chaining
+     * @return PDOMysql allows method chaining
      * @throws DataException
      */
     public function Query($Query)
@@ -122,8 +128,8 @@ class PDOMySQL implements DataInterface
         $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
         try
         {
-            $this->stmt = $oCon->query($Query);
-            if( $this->stmt === FALSE )
+            $this->oPDOStatement = $oCon->query($Query);
+            if( $this->oPDOStatement === FALSE )
             {
                 $e = $oCon->errorInfo();
                 throw new DataException('Error preparing query in '. __CLASS__ . '::'
@@ -135,89 +141,6 @@ class PDOMySQL implements DataInterface
         {
             throw new DataException('Error preparing query in '. __CLASS__ . '::' . __FUNCTION__);
         }
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see DataInterface::BindParams()
-     * @param ParameterCollection $Params
-     * @return Mysql allows method chaining
-     * @throws DataException
-     */
-    public function BindParams(ParameterCollection $Params)
-    {
-        foreach( $Params as $Param ) {
-            $this->BindParam($Param);
-        }
-        return $this;
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see DataInterface::BindParam()
-     * @param Parameter $Param
-     * @return Mysql allows method chaining
-     * @throws DataException
-     */
-    public function BindParam(Parameter $Param)
-    {
-        if(! $this->stmt ) return $this;
-        try {
-            $this->stmt->bindValue($Param->Name, $Param->Value, $Param->Type);
-            return $this;
-        } catch(\Exception $e) {
-            throw new DataException('unable to bind parameter '. $e->getMessage());
-        }
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see DataInterface::Execute()
-     * @return Mysql allows method chaining
-     * @throws DataException
-     */
-    public function Execute()
-    {
-        if(! $this->stmt ) return $this;
-        try {
-            $this->stmt->execute();
-            return $this;
-        } catch( \PDOException $e) {
-            throw new DataException('Error executing query in '. __CLASS__ .'::'. __FUNCTION__);
-        }
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see DataInterface::GetRow()
-     * @return StandardObject object with properties mapped to selected columns
-     */
-    public function Get()
-    {
-        if(! $this->stmt ) return FALSE;
-        return $this->stmt->fetch(\PDO::FETCH_OBJ);
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see DataInterface::GetAll()
-     * @return Array(StandardObject) array of objects with properties mapped to selected columns
-     */
-    public function GetAll()
-    {
-        if(! $this->stmt ) return FALSE;
-        return $this->stmt->fetchAll(\PDO::FETCH_OBJ);
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see DataInterface::GetScalar()
-     * @return mixed
-     */
-    public function GetScalar()
-    {
-        if(! $this->stmt ) return FALSE;
-        return $this->stmt->fetch(\PDO::FETCH_NUM)[0];
     }
 }
 

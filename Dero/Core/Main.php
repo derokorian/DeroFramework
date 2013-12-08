@@ -19,7 +19,7 @@ class Main
         $files = glob(dirname(__DIR__) . DS . 'Settings/*.php');
         foreach($files as $file)
         {
-            if( is_readable($file) )
+            if( is_readable($file) && is_file($file))
                 require_once $file;
         }
 

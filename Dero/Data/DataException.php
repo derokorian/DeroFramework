@@ -1,6 +1,6 @@
 <?php
 
-namespace Dero\Data\Exception;
+namespace Dero\Data;
 
 /**
  * Different exception types for the data layer

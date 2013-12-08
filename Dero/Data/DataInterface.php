@@ -52,5 +52,3 @@ interface DataInterface
      */
     public function GetScalar();
 }
-
-?>
