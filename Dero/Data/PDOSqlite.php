@@ -13,8 +13,16 @@ use Dero\Core\Config;
 
 abstract class PDOSqlite extends PDOWrapper
 {
+    private $oInstance;
+
     /**
      * Opens a connection for a query
      */
-    protected function OpenConnection($bIsRead){}
+    protected function OpenConnection($bIsRead){
+        if( is_null(Config::GetValue('database', $this->sInstance, 'dbLocation')) )
+        {
+            throw new \UnexpectedValueException('Database configuration missing or not correct');
+        }
+        return $this->oInstance = new PDO(sprintf('sqlite:%s', Config::GetValue('database', $this->sInstance, 'dbLocation')));
+    }
 }

@@ -7,5 +7,3 @@ namespace Dero\Data;
  * @author Ryan Pallas
  */
 class DataException extends \Exception {}
-
-?>
