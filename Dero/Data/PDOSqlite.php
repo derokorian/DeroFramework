@@ -11,7 +11,7 @@ use Dero\Core\Config;
  * @since 2012-12-08
  */
 
-abstract class PDOSqlite extends PDOWrapper
+class PDOSqlite extends PDOWrapper
 {
     private $oInstance;
 
@@ -23,6 +23,8 @@ abstract class PDOSqlite extends PDOWrapper
         {
             throw new \UnexpectedValueException('Database configuration missing or not correct');
         }
-        return $this->oInstance = new PDO(sprintf('sqlite:%s', Config::GetValue('database', $this->sInstance, 'dbLocation')));
+        if( !$this->oInstance )
+            $this->oInstance = new PDO(sprintf('sqlite:%s', Config::GetValue('database', $this->sInstance, 'dbLocation')));
+        return $this->oInstance;
     }
 }
