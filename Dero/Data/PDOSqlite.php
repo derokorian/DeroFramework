@@ -15,6 +15,14 @@ class PDOSqlite extends PDOWrapper
 {
     private $oInstance;
 
+    public function __construct($Instance = NULL)
+    {
+        parent::__construct($Instance);
+
+        if( !extension_loaded('pdo_sqlite') )
+            throw new \Exception('PDO_SQLITE is not loaded - please check the server\'s configuration');
+    }
+
     /**
      * Opens a connection for a query
      */
