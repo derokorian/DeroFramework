@@ -13,8 +13,6 @@ use Dero\Core\Config;
 
 abstract class PDOPostgre extends PDOWrapper
 {
-    private $oInstance;
-
     public function __construct($Instance = NULL)
     {
         parent::__construct($Instance);
@@ -28,6 +26,7 @@ abstract class PDOPostgre extends PDOWrapper
      */
     protected function OpenConnection($bIsRead)
     {
+        if( $this->oPDOStatement ) unset($this->oPDOStatement);
         $aConfigArgs = [
             'database',
             $this->sInstance

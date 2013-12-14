@@ -14,6 +14,7 @@ abstract class PDOWrapper implements DataInterface
 {
     protected $oPDOStatement;
     protected $sInstance;
+    protected $oInstance;
 
     /**
      * Constructor for PDO wrapper

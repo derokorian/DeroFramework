@@ -12,8 +12,6 @@ use Dero\Core\Config;
  */
 class PDOMysql extends PDOWrapper
 {
-    private $oInstance;
-
     public function __construct($Instance = NULL)
     {
         parent::__construct($Instance);

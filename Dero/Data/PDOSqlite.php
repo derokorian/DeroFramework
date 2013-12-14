@@ -13,8 +13,6 @@ use Dero\Core\Config;
 
 class PDOSqlite extends PDOWrapper
 {
-    private $oInstance;
-
     public function __construct($Instance = NULL)
     {
         parent::__construct($Instance);
@@ -26,7 +24,9 @@ class PDOSqlite extends PDOWrapper
     /**
      * Opens a connection for a query
      */
-    protected function OpenConnection($bIsRead){
+    protected function OpenConnection($bIsRead)
+    {
+        if( $this->oPDOStatement ) unset($this->oPDOStatement);
         if( is_null(Config::GetValue('database', $this->sInstance, 'dbLocation')) )
         {
             throw new \UnexpectedValueException('Database configuration missing or not correct');
