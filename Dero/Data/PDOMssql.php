@@ -31,11 +31,11 @@ abstract class PDOMssql extends PDOWrapper
             'database',
             $this->sInstance
         ];
-        $aOpts['Name'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'name'));
-        $aOpts['Host'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'host'));
-        $aOpts['User'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'user'));
-        $aOpts['Pass'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'pass'));
-        $aOpts['Port'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'port')) ?: 1433;
+        $aOpts['Name'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, ['name']));
+        $aOpts['Host'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, ['host']));
+        $aOpts['User'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, ['user']));
+        $aOpts['Pass'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, ['pass']));
+        $aOpts['Port'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, ['port'])) ?: 1433;
         if( in_array(null, $aOpts) )
         {
             throw new \UnexpectedValueException('Database connection information not properly defined');

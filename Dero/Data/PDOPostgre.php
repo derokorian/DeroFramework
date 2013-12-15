@@ -32,11 +32,11 @@ abstract class PDOPostgre extends PDOWrapper
             $this->sInstance
         ];
         $aOpts = [];
-        $aOpts['Name'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'name'));
-        $aOpts['Host'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'host'));
-        $aOpts['User'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'user'));
-        $aOpts['Pass'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'pass'));
-        $aOpts['Port'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, 'port')) ?: 3306;
+        $aOpts['Name'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, ['name']));
+        $aOpts['Host'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, ['host']));
+        $aOpts['User'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, ['user']));
+        $aOpts['Pass'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, ['pass']));
+        $aOpts['Port'] = call_user_func_array('Config::GetValue', array_merge($aConfigArgs, ['port'])) ?: 3306;
         if( in_array(null, $aOpts) )
         {
             throw new \UnexpectedValueException('Database connection information not properly defined');
