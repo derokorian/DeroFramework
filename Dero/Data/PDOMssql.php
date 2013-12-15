@@ -44,13 +44,13 @@ abstract class PDOMssql extends PDOWrapper
         {
             $this->oInstance = new \PDO(
                 sprintf(
-                    'pgsql:host=%s;port=%d;dbname=%s;user=%s;password=%s',
+                    'sqlsrv:host=%s,%d;dbname=%s;user=%s;password=%s',
                     $aOpts['Host'],
                     $aOpts['Port'],
-                    $aOpts['Name'],
-                    $aOpts['User'],
-                    $aOpts['Pass']
-                )
+                    $aOpts['Name']
+                ),
+                $aOpts['User'],
+                $aOpts['Pass']
             );
         }
         return $this->oInstance;
