@@ -12,9 +12,11 @@ namespace App\Controller;
 
 class BlogController
 {
+    private $model;
+
     public function __construct(\App\Model\BlogModel $oBlogModel)
     {
-
+        $this->model = $oBlogModel;
     }
 
     public function index()
