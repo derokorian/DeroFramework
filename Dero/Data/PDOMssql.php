@@ -11,7 +11,7 @@ use Dero\Core\Config;
  * @since 2012-12-08
  */
 
-abstract class PDOMssql extends PDOWrapper
+class PDOMssql extends PDOWrapper
 {
     public function __construct($Instance = NULL)
     {

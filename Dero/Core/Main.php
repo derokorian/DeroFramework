@@ -9,7 +9,6 @@
 
 namespace Dero\Core;
 
-
 class Main
 {
 
