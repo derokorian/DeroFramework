@@ -32,8 +32,6 @@ class Parameter
         $this->SetValue($Value);
         if( !is_null($Type) ) {
             $this->SetType($Type);
-        } else {
-            $this->SetType(DB_PARAM_STR);
         }
         if( !is_null($Engine) ) {
             $this->SetEngine($Engine);
@@ -72,13 +70,65 @@ class Parameter
     }
 
     /**
+     * Gets the name of the parameter
+     * @throws \UnexpectedValueException
+     * @return string
+     */
+    public function GetName()
+    {
+        switch($this->Engine)
+        {
+            case DB_ENG_MYSQL:
+                return ':' . $this->Name;
+            case DB_ENG_MSSQL:
+                switch($this->Type) {
+                    default:
+                        throw new \UnexpectedValueException('Parameter does not yet support MS SQL Server');
+                }
+                break;
+            case DB_ENG_POSTGRE:
+                switch($this->Type) {
+                    default:
+                        throw new \UnexpectedValueException('Parameter does not yet support PostgreSQL');
+                }
+                break;
+            case DB_ENG_SQLITE:
+                switch($this->Type) {
+                    default:
+                        throw new \UnexpectedValueException('Parameter does not yet support SQLite');
+                }
+                break;
+            default:
+                throw new \UnexpectedValueException('Unexpected value found in Parameter::Engine');
+        }
+    }
+
+    /**
      * Sets the value to be bound
      * @param str|int|null|bool $Value
      * @return void
      */
     public function SetValue($Value)
     {
+        if( is_bool($Value) )
+            $this->SetType(DB_PARAM_BOOL);
+        elseif( is_null($Value) )
+            $this->SetType(DB_PARAM_NULL);
+        elseif( is_int($Value) )
+            $this->SetType(DB_PARAM_INT);
+        else
+            $this->SetType(DB_PARAM_STR);
+
         $this->Value = $Value;
+    }
+
+    /**
+     * Gets the value of the parameter
+     * @return string
+     */
+    public function GetValue()
+    {
+        return $this->Value;
     }
 
     /**
@@ -93,20 +143,6 @@ class Parameter
         if( !in_array($Type, $acceptable, TRUE) )
             throw new \InvalidArgumentException('type of parameters must be DB_PARAM_*');
         $this->Type = $Type;
-    }
-
-    /**
-     * Sets the engine type being used
-     * @param int $Engine One of (DB_ENG_MYSQL, DB_ENG_MSSQL, DB_ENG_ORACLE)
-     * @throws \InvalidArgumentException
-     * @return void
-     */
-    public function SetEngine($Engine)
-    {
-        $acceptable = [DB_ENG_MYSQL, DB_ENG_MSSQL, DB_ENG_POSTGRE, DB_ENG_SQLITE];
-        if( !in_array($Engine, $acceptable, TRUE) )
-            throw new \InvalidArgumentException('type of parameters must be DB_ENG_*');
-        $this->Engine = $Engine;
     }
 
     /**
@@ -130,25 +166,44 @@ class Parameter
                     default:
                         throw new \UnexpectedValueException('Unexpected value found in Parameter::Type for MySQL');
                 }
+                break;
             case DB_ENG_MSSQL:
                 switch($this->Type) {
                     default:
                         throw new \UnexpectedValueException('Parameter does not yet support MS SQL Server');
                 }
+                break;
             case DB_ENG_POSTGRE:
                 switch($this->Type) {
                     default:
                         throw new \UnexpectedValueException('Parameter does not yet support PostgreSQL');
                 }
+                break;
             case DB_ENG_SQLITE:
                 switch($this->Type) {
                     default:
                         throw new \UnexpectedValueException('Parameter does not yet support SQLite');
                 }
+                break;
             default:
                 throw new \UnexpectedValueException('Unexpected value found in Parameter::Engine');
         }
     }
+
+    /**
+     * Sets the engine type being used
+     * @param int $Engine One of (DB_ENG_MYSQL, DB_ENG_MSSQL, DB_ENG_ORACLE)
+     * @throws \InvalidArgumentException
+     * @return void
+     */
+    public function SetEngine($Engine)
+    {
+        $acceptable = [DB_ENG_MYSQL, DB_ENG_MSSQL, DB_ENG_POSTGRE, DB_ENG_SQLITE];
+        if( !in_array($Engine, $acceptable, TRUE) )
+            throw new \InvalidArgumentException('type of parameters must be DB_ENG_*');
+        $this->Engine = $Engine;
+    }
+
 }
 
 ?>

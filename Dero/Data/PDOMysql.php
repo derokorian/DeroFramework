@@ -106,5 +106,11 @@ class PDOMysql extends PDOWrapper
             return $this->oInstance[$sType];
         }
     }
+
+    public function BindParam(Parameter $Param)
+    {
+        $Param->SetEngine(DB_ENG_MYSQL);
+        parent::BindParam($Param);
+    }
 }
 
