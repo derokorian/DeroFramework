@@ -82,15 +82,17 @@ class BlogModel extends \Dero\Data\BaseModel
         $oParams = new ParameterCollection();
         $this->where(true);
         $sql = 'SELECT * FROM ' . self::TABLE_NAME;
-        if( isset($aOpts['post_id']) )
+        foreach( self::$COLUMNS as $name => $def)
         {
-            $sql .= $this->where() . 'post_id = :post_id ';
-            $oParams->Add(new Parameter('post_id', $aOpts['post_id']));
-        }
-        if( isset($aOpts['user_id']) )
-        {
-            $sql .= $this->where() . 'user_id = :user_id ';
-            $oParams->Add(new Parameter('user_id', $aOpts['user_id']));
+            if( isset($aOpts[$name]) )
+            {
+                $type = $this->getColType($aOpts[$name], $def);
+                if( $type === DB_PARAM_NULL )
+                    $sql .= $this->where() . sprintf('%s IS :%s ', $name, $name);
+                else
+                    $sql .= $this->where() . sprintf('%s=:%s ', $name, $name);
+                $oParams->Add(new Parameter($name, $aOpts[$name], $type));
+            }
         }
 
         $sql .= 'ORDER BY ';

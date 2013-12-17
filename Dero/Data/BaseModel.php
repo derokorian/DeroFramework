@@ -38,4 +38,23 @@ abstract class BaseModel
         }
         return 'AND ';
     }
+
+    protected function getColType($val, $def)
+    {
+        $return = NULL;
+        if( isset($def['nullable']) && $def['nullable'] && $val === NULL)
+            $return = DB_PARAM_NULL;
+        elseif( isset($def['col_type']) )
+        {
+            if( $def['col_type'] == COL_TYPE_BOOLEAN )
+                $return = DB_PARAM_BOOL;
+            elseif( $def['col_type'] == COL_TYPE_INTEGER )
+                $return = DB_PARAM_INT;
+            else
+                $return = DB_PARAM_STR;
+        }
+        if( $return === NULL )
+            throw new \UnexpectedValueException('Unknown column definition');
+        return $return;
+    }
 }
