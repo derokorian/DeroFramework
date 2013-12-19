@@ -1,5 +1,7 @@
 <?php
 
+namespace App\Controller;
+
 /**
  * Blog controller
  * @author Ryan Pallas
@@ -7,8 +9,6 @@
  * @namespace App\Controller
  * @since 2013-12-06
  */
-
-namespace App\Controller;
 
 class BlogController
 {
@@ -26,6 +26,8 @@ class BlogController
 
     public function viewPost($iPostId)
     {
+        $aOpts = ['post_id' => $iPostId];
+        $post = $this->model->getPosts($aOpts);
         printf('<h2>You are viewing post number #$d</h2>', $iPostId);
     }
 }

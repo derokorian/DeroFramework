@@ -39,7 +39,7 @@ abstract class BaseModel
         return 'AND ';
     }
 
-    protected function getColType($val, $def)
+    protected function getParamTypeFromColType($val, $def)
     {
         $return = NULL;
         if( isset($def['nullable']) && $def['nullable'] && $val === NULL)

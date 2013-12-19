@@ -86,7 +86,7 @@ class BlogModel extends \Dero\Data\BaseModel
         {
             if( isset($aOpts[$name]) )
             {
-                $type = $this->getColType($aOpts[$name], $def);
+                $type = $this->getParamTypeFromColType($aOpts[$name], $def);
                 if( $type === DB_PARAM_NULL )
                     $sql .= $this->where() . sprintf('%s IS :%s ', $name, $name);
                 else

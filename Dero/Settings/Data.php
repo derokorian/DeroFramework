@@ -25,7 +25,6 @@ define('COL_TYPE_BOOLEAN', 3);
 define('COL_TYPE_DATETIME', 4);
 define('COL_TYPE_TEXT', 5);
 
-
 /**
  * Table Key Types
  */
