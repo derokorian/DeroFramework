@@ -75,7 +75,7 @@ class BlogModel extends \Dero\Data\BaseModel
     /**
      * Gets posts as specified by options
      * @param array $aOpts
-     * @return bool
+     * @return bool|array
      */
     public function getPosts(Array $aOpts)
     {
