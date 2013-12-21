@@ -15,46 +15,47 @@ class TemplateEngine {
 
     public static function LoadView($strFile, Array $vars = [])
     {
-        
+        $strContent = file_get_contents($strFile);
+        self::ParseTemplate($strContent, $vars);
     }
 
-    public static function ParseFile($strFile, Array $vars = [])
+    public static function ParseTemplate($strContent, Array $vars = [])
     {
         extract($vars);
 
         // replace embedded templates, variables, and constants
-        if (preg_match_all('#\{(\w+)(\|([\w\\\]+))?\}#i', $strFile, $matches)) {
+        if (preg_match_all('#\{(\w+)(\|([\w\\\]+))?\}#i', $strContent, $matches)) {
             foreach ($matches[1] as $k => $match) {
                 switch ($match) {
                     case 'tpl':
-                        $strFile = str_replace($matches[0][$k],
+                        $strContent = str_replace($matches[0][$k],
                             self::LoadView($matches[3][$k]),
-                            $strFile);
+                            $strContent);
                         break;
                     case '_SERVER':
-                        $strFile = str_replace($matches[0][$k],
+                        $strContent = str_replace($matches[0][$k],
                             isset($_SERVER[$matches[3][$k]]) ? $_SERVER[$matches[3][$k]] : '',
-                            $strFile);
+                            $strContent);
                         break;
                     case '_POST':
-                        $strFile = str_replace($matches[0][$k],
+                        $strContent = str_replace($matches[0][$k],
                             isset($_POST[$matches[3][$k]]) ? $_POST[$matches[3][$k]] : '',
-                            $strFile);
+                            $strContent);
                         break;
                     case '_GET':
-                        $strFile = str_replace($matches[0][$k],
+                        $strContent = str_replace($matches[0][$k],
                             isset($_GET[$matches[3][$k]]) ? $_GET[$matches[3][$k]] : '',
-                            $strFile);
+                            $strContent);
                         break;
                     case defined($match):
-                        $strFile = str_replace($matches[0][$k],
+                        $strContent = str_replace($matches[0][$k],
                             constant($match),
-                            $strFile);
+                            $strContent);
                         break;
                     case isset($$match):
-                        $strFile = str_replace($matches[0][$k],
+                        $strContent = str_replace($matches[0][$k],
                             $$match,
-                            $strFile);
+                            $strContent);
                         break;
                     default:
                         foreach( self::$NAMESPACES as $ns ) {
@@ -63,20 +64,20 @@ class TemplateEngine {
                                 $action = $matches[3][$k];
                                 $class = new $class();
                                 if (method_exists($class, $action)) {
-                                    $strFile = str_replace($matches[0][$k], call_user_func_array('self::View', $class->$action()), $strFile);
+                                    $strContent = str_replace($matches[0][$k], call_user_func_array('self::View', $class->$action()), $strContent);
                                 } elseif (property_exists($class, $action)) {
-                                    $strFile = str_replace($matches[0][$k], $class->$action, $strFile);
+                                    $strContent = str_replace($matches[0][$k], $class->$action, $strContent);
                                 }
                             }
                         }
                 }
-                if( strpos($strFile, $matches[0][$k]) !== FALSE )
-                    $strFile = str_replace($matches[0][$k], '', $strFile);
+                if( strpos($strContent, $matches[0][$k]) !== FALSE )
+                    $strContent = str_replace($matches[0][$k], '', $strContent);
             }
         }
 
         // replace iterations
-        if (preg_match_all('#\{each\|(\w+)>(\w+)\}(.*?)\{\/each\}#is', $strFile, $matches)) {
+        if (preg_match_all('#\{each\|(\w+)>(\w+)\}(.*?)\{\/each\}#is', $strContent, $matches)) {
             foreach ($matches[1] as $k => $match) {
                 $body = '';
                 if( isset($$match) && is_array($$match) ) {
@@ -86,12 +87,12 @@ class TemplateEngine {
                         $body .= str_replace('{'.$matches[2][$k].'}', $replace, $RepeatBody);
                     }
                 }
-                $strFile = str_replace($matches[0][$k], $body, $strFile);
+                $strContent = str_replace($matches[0][$k], $body, $strContent);
             }
         }
 
         // call static methods with arguments
-        if( preg_match_all('#\{(\w+)>(\w+)\((.*)\)\}#i', $strFile, $matches) ) {
+        if( preg_match_all('#\{(\w+)>(\w+)\((.*)\)\}#i', $strContent, $matches) ) {
             foreach ($matches[0] as $k => $match) {
                 $class = $matches[1][$k];
                 $method = $matches[2][$k];
@@ -117,11 +118,11 @@ class TemplateEngine {
                 } else {
                     throw new \UnexpectedValueException('Class not found ('.$class.')');
                 }
-                $strFile = str_replace($match, '', $strFile);
+                $strContent = str_replace($match, '', $strContent);
             }
         }
 
-        $strFile = preg_replace('#\{[a-z0-9|]+\}#i', '', $strFile);
-        return $strFile;
+        $strContent = preg_replace('#\{[a-z0-9|]+\}#i', '', $strContent);
+        return $strContent;
     }
 } 
