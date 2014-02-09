@@ -1,0 +1,10 @@
+main, header, footer
+{
+    width: 500px;
+    margin: 10px auto;
+}
+.clear
+{
+    clear: both;
+    height: 0;
+}
