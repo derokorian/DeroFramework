@@ -32,6 +32,7 @@ class BlogController extends \Dero\Core\BaseController
             foreach( $oRet->Get() as $oPost )
             {
                 $oPost->modified = strtotime($oPost->modified);
+                $oPost->created = strtotime($oPost->created);
                 echo TemplateEngine::LoadView('blog/post', (Array)$oPost);
             }
             echo TemplateEngine::LoadView('footer');

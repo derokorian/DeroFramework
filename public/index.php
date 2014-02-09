@@ -11,7 +11,6 @@ define('DS', DIRECTORY_SEPARATOR);
 /*
  * Define error reporting settings
  */
-ini_set('error_log', dirname(__DIR__) . '/logs/' . date('Y-m-d') . '-error.log');
 if( (bool)getenv('PHP_DEBUG')  === true )
 {
     ini_set('error_reporting', E_ALL);
@@ -23,6 +22,7 @@ else
     ini_set('error_reporting', E_WARNING);
     ini_set('log_errors', true);
     ini_set('display_errors', false);
+    ini_set('error_log', dirname(__DIR__) . '/logs/' . date('Y-m-d') . '-error.log');
 }
 
 spl_autoload_register(function ($strClass)

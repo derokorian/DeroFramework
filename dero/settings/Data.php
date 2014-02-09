@@ -25,6 +25,8 @@ define('COL_TYPE_DECIMAL', 2);
 define('COL_TYPE_BOOLEAN', 3);
 define('COL_TYPE_DATETIME', 4);
 define('COL_TYPE_TEXT', 5);
+define('COL_TYPE_STRING', 6);
+define('COL_TYPE_FIXED_STRING', 7);
 
 /**
  * Table Key Types

@@ -11,6 +11,7 @@ interface DataInterface
     /**
      * Prepares a query for execution
      * @param string $Query
+     * @return DataInterface
      */
     public function Prepare($Query);
 
@@ -23,17 +24,20 @@ interface DataInterface
     /**
      * Binds a collection of parameters to a prepared query
      * @param ParameterCollection $Params
+     * @return DataInterface
      */
     public function BindParams(ParameterCollection $Params);
 
     /**
      * Binds a single parameter to a prepared query
      * @param Parameter $Param
+     * @return DataInterface
      */
     public function BindParam(Parameter $Param);
 
     /**
      * Executes a prepared query
+     * @return DataInterface
      */
     public function Execute();
 

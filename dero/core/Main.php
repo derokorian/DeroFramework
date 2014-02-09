@@ -28,7 +28,14 @@ class Main
     private static function LoadRoute()
     {
         $bRouteFound = false;
-        $strURI = trim($_SERVER['REQUEST_URI'], '/');
+        if( PHP_SAPI === 'cli' )
+        {
+            $strURI = !empty($GLOBALS["argv"][1]) ? $GLOBALS["argv"][1] : '';
+        }
+        else
+        {
+            $strURI = trim($_SERVER['REQUEST_URI'], '/');
+        }
 
         // Load defined routes
         $aRoutes = [];

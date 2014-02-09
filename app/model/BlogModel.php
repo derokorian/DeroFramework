@@ -11,8 +11,8 @@ namespace App\Model;
 
 use Dero\Core\RetVal;
 use \Dero\Data\DataException;
+use Dero\Data\DataInterface;
 use \Dero\Data\Factory;
-use \Dero\Data\Parameter;
 use \Dero\Data\ParameterCollection;
 
 class BlogModel extends \Dero\Data\BaseModel
@@ -23,7 +23,6 @@ class BlogModel extends \Dero\Data\BaseModel
         'post_id' => [
             'col_type' => COL_TYPE_INTEGER,
             'required' => false,
-            'nullable' => false,
             'key' => KEY_TYPE_PRIMARY,
             'extra' => [
                 'auto_increment'
@@ -32,53 +31,39 @@ class BlogModel extends \Dero\Data\BaseModel
         'user_id' => [
             'col_type' => COL_TYPE_INTEGER,
             'required' => true,
-            'nullable' => false,
             'key' => KEY_TYPE_FOREIGN,
-            'extra' => []
+            'foreign_table' => 'users',
+            'foreign_column' => 'user_id'
         ],
         'title' => [
             'col_type' => COL_TYPE_TEXT,
-            'required' => true,
-            'nullable' => false,
-            'key' => null,
-            'extra' => []
+            'required' => true
         ],
         'body' => [
             'col_type' => COL_TYPE_TEXT,
-            'required' => true,
-            'nullable' => false,
-            'key' => null,
-            'extra' => []
+            'required' => true
         ],
         'published' => [
             'col_type' => COL_TYPE_BOOLEAN,
-            'required' => false,
-            'nullable' => false,
-            'key' => null,
-            'extra' => []
+            'required' => false
         ],
         'created' => [
             'col_type' => COL_TYPE_DATETIME,
-            'required' => false,
-            'nullable' => false,
-            'key' => null,
-            'extra' => []
+            'required' => false
         ],
         'modified' => [
             'col_type' => COL_TYPE_DATETIME,
-            'required' => false,
-            'nullable' => false,
-            'key' => null,
-            'extra' => []
+            'required' => false
         ]
     ];
 
     /**
      * Constructor
      */
-    public function __construct()
+    public function __construct($db = null)
     {
-        $db = Factory::GetDataInterface('default');
+        if( !$db instanceof DataInterface )
+            $db = Factory::GetDataInterface('default');
         parent::__construct($db);
     }
 

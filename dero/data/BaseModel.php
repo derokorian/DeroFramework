@@ -94,6 +94,11 @@ abstract class BaseModel
         return $return;
     }
 
+    /**
+     * Generates the SQL to create table defined by class properties
+     * @return null|string
+     * @throws \UnexpectedValueException
+     */
     public function GenerateCreateTable()
     {
         if( strlen(static::$TABLE_NAME) == 0 || count(static::$COLUMNS) == 0)
@@ -106,7 +111,6 @@ abstract class BaseModel
             foreach( static::$COLUMNS as $strCol => $aCol )
             {
                 $sType = '';
-                $sNull = 'NULL';
                 $sKey = '';
                 $sExtra = '';
                 switch($aCol['col_type'])
@@ -118,9 +122,9 @@ abstract class BaseModel
                         $sType = 'DATETIME';
                         break;
                     case COL_TYPE_DECIMAL:
-                        if( isset($aCol['precision']) && isset($aCol['scale']) )
+                        if( isset($aCol['col_length']) && isset($aCol['scale']) )
                         {
-                            $sType = sprintf('DECIMAL(%d, %d)', $aCol['precision'], $aCol['scale']);
+                            $sType = sprintf('DECIMAL(%d, %d)', $aCol['col_length'], $aCol['scale']);
                         }
                         else
                         {
@@ -129,36 +133,94 @@ abstract class BaseModel
                         break;
                     case COL_TYPE_INTEGER:
                         $sType = 'INT';
+                        if( isset($aCol['col_length']) && is_numeric($aCol['col_length']) )
+                        {
+                            $sType .= sprintf("(%d)", $aCol['col_length']);
+                        }
                         break;
                     case COL_TYPE_TEXT:
                         $sType = 'TEXT';
                         break;
-                }
-                if( !$aCol['nullable'] )
-                {
-                    $sNull = 'NOT NULL';
-                }
-                if( in_array('auto_increment', $aCol['extra']) )
-                {
-                    $sExtra = 'auto_increment';
-                }
-                switch($aCol['key'])
-                {
-                    case KEY_TYPE_PRIMARY:
-                        $sKey = 'primary';
-                        break;
-                    case KEY_TYPE_FOREIGN:
-                        if( isset($aCol['foreign_table']) &&
-                            isset($aCol['foreign_column']) )
+                    case COL_TYPE_STRING:
+                        if( isset($aCol['col_length']) && is_numeric($aCol['col_length']) )
                         {
-                            $sKey = sprintf("FOREIGN KEY %s_%s (%s) REFERENCES %s (%s)");
+                            $sType = sprintf("VARCHAR(%d)", $aCol['col_length']);
+                        }
+                        else
+                        {
+                            throw new \UnexpectedValueException(
+                                'Bad column definition. COL_TYPE_STRING requires col_length be set.');
+                        }
+                        break;
+                    case COL_TYPE_FIXED_STRING:
+                        if( isset($aCol['col_length']) && is_numeric($aCol['col_length']) )
+                        {
+                            $sType = sprintf("CHAR(%d)", $aCol['col_length']);
+                        }
+                        else
+                        {
+                            throw new \UnexpectedValueException(
+                                'Bad column definition. COL_TYPE_STRING requires col_length be set.');
                         }
                 }
+                if( isset($aCol['extra']) &&
+                    is_array($aCol['extra']) )
+                {
+                    if( in_array('nullable', $aCol['extra']) )
+                    {
+                        $sExtra .= 'NULL ';
+                    }
+                    else
+                    {
+                        $sExtra .= 'NOT NULL ';
+                    }
+
+                    if( in_array('auto_increment', $aCol['extra']) )
+                    {
+                        $sExtra .= 'auto_increment ';
+                    }
+                    if( in_array('unique', $aCol['extra']) )
+                    {
+                        $sExtra .= 'UNIQUE ';
+                    }
+                    $def = preg_grep('/^default.*$/i', $aCol['extra']);
+                    if( count($def) > 0 )
+                    {
+                        $sExtra .= $def[0];
+                    }
+                }
+                else
+                {
+                    $sExtra .= 'NOT NULL ';
+                }
+
+                if( isset($aCol['key']) )
+                {
+                    switch($aCol['key'])
+                    {
+                        case KEY_TYPE_PRIMARY:
+                            $sKey = 'PRIMARY KEY';
+                            break;
+                        case KEY_TYPE_FOREIGN:
+                            if( isset($aCol['foreign_table']) &&
+                                isset($aCol['foreign_column']) )
+                            {
+                                $sKey = sprintf(
+                                    ",\n\t\tFOREIGN KEY %s_%s (%s)\n\t\t\tREFERENCES %s (%s)",
+                                    $aCol['foreign_table'],
+                                    $aCol['foreign_column'],
+                                    $strCol,
+                                    $aCol['foreign_table'],
+                                    $aCol['foreign_column']
+                                );
+                            }
+                    }
+                }
+
                 $strCreate .= sprintf(
-                    "\n\t`%s` %s %s %s %s,",
+                    "\n\t`%s` %s %s %s,",
                     $strCol,
                     $sType,
-                    $sNull,
                     $sExtra,
                     $sKey
                 );
@@ -166,5 +228,22 @@ abstract class BaseModel
         }
         $strCreate = substr($strCreate, 0, -1) . ') Engine=InnoDB';
         return $strCreate;
+    }
+
+
+    /**
+     * Creates the blog-post table
+     * @returns \Dero\Core\RetVal
+     */
+    public function CreateTable()
+    {
+        $oRetVal = new \Dero\Core\RetVal();
+        $strSql = $this->GenerateCreateTable();
+        try {
+            $oRetVal->Set($this->DB->Query($strSql));
+        } catch (DataException $e) {
+            $oRetVal->SetError('Unable to query database', $e);
+        }
+        return $oRetVal;
     }
 }

@@ -6,12 +6,13 @@ div.blogPost
 div.blogPost > span.title
 {
     float: left;
-    padding: 2px;
+    padding: 5px;
     text-align: left;
 }
 div.blogPost > span.posted
 {
     float: right;
+    padding: 5px;
     text-align: right;
 }
 div.blogPost > span.body

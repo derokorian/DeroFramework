@@ -11,14 +11,14 @@ namespace Dero\Core;
 
 
 class TemplateEngine {
-    private static $NAMESPACES = ['Dero\Core\\'];
+    private static $NAMESPACES = ['Dero\Core\\', 'App\Controller\\'];
 
     public static function LoadView($strView, Array $vars = [])
     {
         $aExt = ['phtml','php', 'tpl', 'html'];
         foreach( $aExt as $strExt )
         {
-            $strFile = ROOT . DS . 'app/view' . DS .  $strView . '.' . $strExt;
+            $strFile = ROOT . '/app/view/' .  $strView . '.' . $strExt;
             if( is_readable($strFile) )
             {
                 $strContent = file_get_contents($strFile);
@@ -108,12 +108,11 @@ class TemplateEngine {
                 $args = $matches[3][$k];
                 foreach( self::$NAMESPACES as $ns ) {
                     if( class_exists($ns . $class) ) {
-                        $class = $ns.$class;
+                        $class = $ns . $class;
                     }
                 }
                 if( class_exists($class) || $class == 'static' ) {
                     if( method_exists($class, $method) || ($class == 'static' && function_exists($method)) ) {
-                        $strReplace = '';
                         if( strpos($args,',') !== FALSE ) {
                             $args = explode(',', $args);
                             foreach( $args as &$arg )
