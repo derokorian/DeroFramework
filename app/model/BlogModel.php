@@ -36,7 +36,8 @@ class BlogModel extends \Dero\Data\BaseModel
             'foreign_column' => 'user_id'
         ],
         'title' => [
-            'col_type' => COL_TYPE_TEXT,
+            'col_type' => COL_TYPE_STRING,
+            'col_length' => 100,
             'required' => true
         ],
         'body' => [

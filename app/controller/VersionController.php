@@ -12,11 +12,11 @@ use Dero\Data\Factory;
  * @since 2013-12-06
  */
 
-class InstallController extends \Dero\Core\BaseController
+class VersionController extends \Dero\Core\BaseController
 {
     public function __construct() { }
 
-    public function index()
+    public function install()
     {
         if( PHP_SAPI === 'cli' )
         {
@@ -63,6 +63,24 @@ class InstallController extends \Dero\Core\BaseController
             }
         }
         else
+        {
+            var_dump(PHP_SAPI);
+        }
+    }
+
+    public function upgrade()
+    {
+        //if( PHP_SAPI === 'cli' )
+        {
+            $db =Factory::GetDataInterface('default');
+            $oBlogModel = new BlogModel($db);
+            $oUserModel = new UserModel($db);
+            $oRet = $oUserModel->VerifyTableDefinition();
+            var_dump($oRet->Get());
+            $oRet = $oBlogModel->VerifyTableDefinition();
+            var_dump($oRet->Get());
+        }
+        //else
         {
             var_dump(PHP_SAPI);
         }

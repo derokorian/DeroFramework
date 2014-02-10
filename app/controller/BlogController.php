@@ -28,7 +28,7 @@ class BlogController extends \Dero\Core\BaseController
         $oRet = $this->model->getPosts($aOpts);
         if( !$oRet->HasFailure() )
         {
-            echo TemplateEngine::LoadView('header');
+            echo TemplateEngine::LoadView('header', ['title'=>'Index']);
             foreach( $oRet->Get() as $oPost )
             {
                 $oPost->modified = strtotime($oPost->modified);
@@ -47,9 +47,21 @@ class BlogController extends \Dero\Core\BaseController
 
     public function viewPost($iPostId)
     {
-        $aOpts = ['post_id' => $iPostId];
-        $aPosts = $this->model->getPosts($aOpts);
-        parent::LoadView('blog/post', $aPosts[0]);
-        printf('<h2>You are viewing post number #$d</h2>', $iPostId);
+
+    }
+
+    public function addPost()
+    {
+
+    }
+
+    public function editPost($iPostId)
+    {
+
+    }
+
+    public function deletePost()
+    {
+
     }
 }

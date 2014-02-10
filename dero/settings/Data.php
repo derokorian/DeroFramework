@@ -33,3 +33,4 @@ define('COL_TYPE_FIXED_STRING', 7);
  */
 define('KEY_TYPE_PRIMARY', 1);
 define('KEY_TYPE_FOREIGN', 2);
+define('KEY_TYPE_UNIQUE', 3);

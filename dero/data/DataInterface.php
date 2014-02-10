@@ -18,6 +18,7 @@ interface DataInterface
     /**
      * Executes a query directly
      * @param string $Query
+     * @return DataInterface
      */
     public function Query($Query);
 

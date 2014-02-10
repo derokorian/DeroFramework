@@ -28,17 +28,13 @@ class UserModel extends \Dero\Data\BaseModel
             'col_type' => COL_TYPE_STRING,
             'col_length' => 25,
             'required' => true,
-            'extra' => [
-                'unique'
-            ]
+            'key' => KEY_TYPE_UNIQUE
         ],
         'email' => [
             'col_type' => COL_TYPE_STRING,
             'col_length' => 100,
             'required' => true,
-            'extra' => [
-                'unique'
-            ]
+            'key' => KEY_TYPE_UNIQUE
         ],
         'first_name' => [
             'col_type' => COL_TYPE_STRING,
