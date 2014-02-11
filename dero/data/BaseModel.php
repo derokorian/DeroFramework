@@ -104,127 +104,135 @@ abstract class BaseModel
         if( strlen(static::$TABLE_NAME) == 0 || count(static::$COLUMNS) == 0)
             return null;
 
-        $strCreate = '';
         if( $this->DB instanceof PDOMysql )
         {
-            $strCreate .= 'CREATE TABLE IF NOT EXISTS ' . static::$TABLE_NAME . '(';
-            foreach( static::$COLUMNS as $strCol => $aCol )
+            return $this->GenerateCreateTableMySQL();
+        }
+    }
+    /**
+     * Generates the SQL to create table defined by class properties
+     * @return null|string
+     * @throws \UnexpectedValueException
+     */
+    public function GenerateCreateTableMySQL()
+    {
+        $strCreate = 'CREATE TABLE IF NOT EXISTS ' . static::$TABLE_NAME . '(';
+        foreach( static::$COLUMNS as $strCol => $aCol )
+        {
+            $sType = '';
+            $sKey = '';
+            $sExtra = '';
+            switch($aCol['col_type'])
             {
-                $sType = '';
-                $sKey = '';
-                $sExtra = '';
-                switch($aCol['col_type'])
-                {
-                    case COL_TYPE_BOOLEAN:
-                        $sType = 'TINYINT(1)';
-                        break;
-                    case COL_TYPE_DATETIME;
-                        $sType = 'DATETIME';
-                        break;
-                    case COL_TYPE_DECIMAL:
-                        if( isset($aCol['col_length']) && isset($aCol['scale']) )
-                        {
-                            $sType = sprintf('DECIMAL(%d, %d)', $aCol['col_length'], $aCol['scale']);
-                        }
-                        else
-                        {
-                            $sType = 'DECIMAL(10, 4)';
-                        }
-                        break;
-                    case COL_TYPE_INTEGER:
-                        $sType = 'INT';
-                        if( isset($aCol['col_length']) && is_numeric($aCol['col_length']) )
-                        {
-                            $sType .= sprintf("(%d)", $aCol['col_length']);
-                        }
-                        break;
-                    case COL_TYPE_TEXT:
-                        $sType = 'TEXT';
-                        break;
-                    case COL_TYPE_STRING:
-                        if( isset($aCol['col_length']) && is_numeric($aCol['col_length']) )
-                        {
-                            $sType = sprintf("VARCHAR(%d)", $aCol['col_length']);
-                        }
-                        else
-                        {
-                            throw new \UnexpectedValueException(
-                                'Bad column definition. COL_TYPE_STRING requires col_length be set.');
-                        }
-                        break;
-                    case COL_TYPE_FIXED_STRING:
-                        if( isset($aCol['col_length']) && is_numeric($aCol['col_length']) )
-                        {
-                            $sType = sprintf("CHAR(%d)", $aCol['col_length']);
-                        }
-                        else
-                        {
-                            throw new \UnexpectedValueException(
-                                'Bad column definition. COL_TYPE_STRING requires col_length be set.');
-                        }
-                        break;
-                }
-                if( isset($aCol['extra']) &&
-                    is_array($aCol['extra']) )
-                {
-                    if( in_array('nullable', $aCol['extra']) )
+                case COL_TYPE_BOOLEAN:
+                    $sType = 'TINYINT(1)';
+                    break;
+                case COL_TYPE_DATETIME;
+                    $sType = 'DATETIME';
+                    break;
+                case COL_TYPE_DECIMAL:
+                    if( isset($aCol['col_length']) && isset($aCol['scale']) )
                     {
-                        $sExtra .= 'NULL ';
+                        $sType = sprintf('DECIMAL(%d, %d)', $aCol['col_length'], $aCol['scale']);
                     }
                     else
                     {
-                        $sExtra .= 'NOT NULL ';
+                        $sType = 'DECIMAL(10, 4)';
                     }
-
-                    if( in_array('auto_increment', $aCol['extra']) )
+                    break;
+                case COL_TYPE_INTEGER:
+                    $sType = 'INT';
+                    if( isset($aCol['col_length']) && is_numeric($aCol['col_length']) )
                     {
-                        $sExtra .= 'auto_increment ';
+                        $sType .= sprintf("(%d)", $aCol['col_length']);
                     }
-                    $def = preg_grep('/^default.*$/i', $aCol['extra']);
-                    if( count($def) > 0 )
+                    break;
+                case COL_TYPE_TEXT:
+                    $sType = 'TEXT';
+                    break;
+                case COL_TYPE_STRING:
+                    if( isset($aCol['col_length']) && is_numeric($aCol['col_length']) )
                     {
-                        $sExtra .= $def[0];
+                        $sType = sprintf("VARCHAR(%d)", $aCol['col_length']);
                     }
+                    else
+                    {
+                        throw new \UnexpectedValueException(
+                            'Bad column definition. COL_TYPE_STRING requires col_length be set.');
+                    }
+                    break;
+                case COL_TYPE_FIXED_STRING:
+                    if( isset($aCol['col_length']) && is_numeric($aCol['col_length']) )
+                    {
+                        $sType = sprintf("CHAR(%d)", $aCol['col_length']);
+                    }
+                    else
+                    {
+                        throw new \UnexpectedValueException(
+                            'Bad column definition. COL_TYPE_STRING requires col_length be set.');
+                    }
+                    break;
+            }
+            if( isset($aCol['extra']) &&
+                is_array($aCol['extra']) )
+            {
+                if( in_array('nullable', $aCol['extra']) )
+                {
+                    $sExtra .= 'NULL ';
                 }
                 else
                 {
                     $sExtra .= 'NOT NULL ';
                 }
 
-                if( isset($aCol['key']) )
+                if( in_array('auto_increment', $aCol['extra']) )
                 {
-                    switch($aCol['key'])
-                    {
-                        case KEY_TYPE_PRIMARY:
-                            $sKey = 'PRIMARY KEY';
-                            break;
-                        case KEY_TYPE_UNIQUE:
-                            $sKey = 'UNIQUE';
-                            break;
-                        case KEY_TYPE_FOREIGN:
-                            if( isset($aCol['foreign_table']) &&
-                                isset($aCol['foreign_column']) )
-                            {
-                                $sKey = sprintf(
-                                    ",\n\t\tFOREIGN KEY %s_%s (%s)\n\t\t\tREFERENCES %s (%s)",
-                                    $aCol['foreign_table'],
-                                    $aCol['foreign_column'],
-                                    $strCol,
-                                    $aCol['foreign_table'],
-                                    $aCol['foreign_column']
-                                );
-                            }
-                    }
+                    $sExtra .= 'auto_increment ';
                 }
-
-                $strCreate .= sprintf(
-                    "\n\t`%s` %s %s %s,",
-                    $strCol,
-                    $sType,
-                    $sExtra,
-                    $sKey
-                );
+                $def = preg_grep('/^default.*$/i', $aCol['extra']);
+                if( count($def) > 0 )
+                {
+                    $sExtra .= $def[0];
+                }
             }
+            else
+            {
+                $sExtra .= 'NOT NULL ';
+            }
+
+            if( isset($aCol['key']) )
+            {
+                switch($aCol['key'])
+                {
+                    case KEY_TYPE_PRIMARY:
+                        $sKey = 'PRIMARY KEY';
+                        break;
+                    case KEY_TYPE_UNIQUE:
+                        $sKey = 'UNIQUE';
+                        break;
+                    case KEY_TYPE_FOREIGN:
+                        if( isset($aCol['foreign_table']) &&
+                            isset($aCol['foreign_column']) )
+                        {
+                            $sKey = sprintf(
+                                ",\n\t\tFOREIGN KEY %s_%s (%s)\n\t\t\tREFERENCES %s (%s)",
+                                $aCol['foreign_table'],
+                                $aCol['foreign_column'],
+                                $strCol,
+                                $aCol['foreign_table'],
+                                $aCol['foreign_column']
+                            );
+                        }
+                }
+            }
+
+            $strCreate .= sprintf(
+                "\n\t`%s` %s %s %s,",
+                $strCol,
+                $sType,
+                $sExtra,
+                $sKey
+            );
         }
         $strCreate = substr($strCreate, 0, -1) . "\n) Engine=InnoDB";
         return $strCreate;
@@ -253,6 +261,18 @@ abstract class BaseModel
      * @returns \Dero\Core\RetVal
      */
     public function VerifyTableDefinition()
+    {
+        if( $this->DB instanceof PDOMysql )
+        {
+            return $this->VerifyTableDefinitionMySQL();
+        }
+    }
+    /**
+     * Verifies the current tables definition and updates if necessary
+     * @throws \UnexpectedValueException
+     * @returns \Dero\Core\RetVal
+     */
+    public function VerifyTableDefinitionMySQL()
     {
         $oRetVal = new \Dero\Core\RetVal();
         $strSql = 'DESCRIBE ' . static::$TABLE_NAME;
@@ -365,7 +385,7 @@ abstract class BaseModel
                         }
                         break;
                 }
-                
+
                 if( isset($aCol['extra']) &&
                     is_array($aCol['extra']) )
                 {
