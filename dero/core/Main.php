@@ -15,7 +15,7 @@ class Main
     public static function init()
     {
         // Load settings
-        $files = glob(dirname(__DIR__) . DS . 'settings' . DS . '*.php');
+        $files = glob(dirname(__DIR__) . '/settings/*.php');
         foreach($files as $file)
         {
             if( is_readable($file) && is_file($file) )
@@ -34,12 +34,12 @@ class Main
         }
         else
         {
-            $strURI = trim($_SERVER['REQUEST_URI'], '/');
+            $strURI = trim($_GET['REQUEST'], '/');
         }
 
         // Load defined routes
         $aRoutes = [];
-        $files = glob(ROOT . DS . 'app' . DS . 'routes' . DS . '*.php');
+        $files = glob(ROOT . '/app/routes/*.php');
         foreach($files as $file)
             include_once $file;
 
@@ -61,23 +61,33 @@ class Main
                 $oController = $oRef->newInstanceArgs($aDeps);
             }
 
+            if( is_numeric($aRoute['method']) )
+            {
+                $method = $aRoute['Match'][$aRoute['method']];
+            }
+            else
+            {
+                $method = $aRoute['method'];
+            }
+
             if( empty($aRoute['args']) )
-                $oController->{$aRoute['method']}();
+            {
+                $oController->{$method}();
+            }
             else
             {
                 $args = [];
                 foreach($aRoute['args'] as $arg)
                 {
-                    $args[] = $aRoute['Match'][0][$arg];
+                    $args[] = $aRoute['Match'][$arg];
                 }
-                $oController->{$aRoute['method']}($args);
+                $oController->{$method}($args);
             }
         };
 
         // Attempt to find the requested route
-        foreach($aRoutes as $k => $aRoute)
+        foreach($aRoutes as $aRoute)
         {
-            if( $k == 'default' ) continue;
             if( preg_match($aRoute['pattern'], $strURI, $match) )
             {
                 $bRouteFound = true;

@@ -21,7 +21,7 @@ class UserModel extends \Dero\Data\BaseModel
             'required' => false,
             'key' => KEY_TYPE_PRIMARY,
             'extra' => [
-                'auto_increment'
+                DB_AUTO_INCREMENT
             ]
         ],
         'username' => [
@@ -49,7 +49,7 @@ class UserModel extends \Dero\Data\BaseModel
             'col_length' => 50,
             'required' => false,
             'extra' => [
-                'nullable'
+                DB_NULLABLE
             ]
         ],
         'password' => [

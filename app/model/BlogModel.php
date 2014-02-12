@@ -25,7 +25,7 @@ class BlogModel extends \Dero\Data\BaseModel
             'required' => false,
             'key' => KEY_TYPE_PRIMARY,
             'extra' => [
-                'auto_increment'
+                DB_AUTO_INCREMENT
             ]
         ],
         'user_id' => [

@@ -14,75 +14,70 @@ use Dero\Data\Factory;
 
 class VersionController extends \Dero\Core\BaseController
 {
-    public function __construct() { }
+    public function __construct() {
+        if( PHP_SAPI !== 'cli' )
+        {
+            header('Location: ' . $_SERVER[''] . '/error/404');
+            exit;
+        }
+    }
 
     public function install()
     {
-        if( PHP_SAPI === 'cli' )
+        $db = Factory::GetDataInterface('default');
+        $oBlogModel = new BlogModel($db);
+        $oUserModel = new UserModel($db);
+        echo $oUserModel->GenerateCreateTable();
+        echo PHP_EOL . PHP_EOL;
+        echo $oBlogModel->GenerateCreateTable();
+        echo PHP_EOL . PHP_EOL;
+        echo "Would you likst to execute these create statements [y/n]?\n";
+        $f = fopen("php://stdin", 'r');
+        $a = fgets($f);
+        if( strtolower($a) )
         {
-            $db =Factory::GetDataInterface('default');
-            $oBlogModel = new BlogModel($db);
-            $oUserModel = new UserModel($db);
-            echo $oUserModel->GenerateCreateTable();
-            echo PHP_EOL . PHP_EOL;
-            echo $oBlogModel->GenerateCreateTable();
-            echo PHP_EOL . PHP_EOL;
-            echo "Would you likst to execute these create statements [y/n]?\n";
-            $f = fopen("php://stdin", 'r');
-            $a = fgets($f);
-            if( strtolower($a) )
+            echo "Creating tables...\n";
+            try
             {
-                echo "Creating tables...\n";
-                try
+                $oRet = $oUserModel->CreateTable();
+                if( $oRet->HasFailure() )
                 {
-                    $oRet = $oUserModel->CreateTable();
-                    if( $oRet->HasFailure() )
-                    {
-                        echo "Error on user table\n";
-                        var_dump($oRet);
-                        return;
-                    }
-
-                    $oRet = $oBlogModel->CreateTable();
-                    if( $oRet->HasFailure() )
-                    {
-                        echo "Error on blog-post table\n";
-                        var_dump($oRet);
-                        return;
-                    }
-
-                    if( !$oRet->HasFailure() )
-                    {
-                        echo "Tables created successfully.\n";
-                    }
-                } catch (\Exception $e) {
-                    echo "Problem creating tables.\n";
-                    var_dump($e);
+                    echo "Error on user table\n";
+                    var_dump($oRet);
+                    return;
                 }
 
+                $oRet = $oBlogModel->CreateTable();
+                if( $oRet->HasFailure() )
+                {
+                    echo "Error on blog-post table\n";
+                    var_dump($oRet);
+                    return;
+                }
+
+                if( !$oRet->HasFailure() )
+                {
+                    echo "Tables created successfully.\n";
+                }
+            } catch (\Exception $e) {
+                echo "Problem creating tables.\n";
+                var_dump($e);
             }
-        }
-        else
-        {
-            var_dump(PHP_SAPI);
+
         }
     }
 
     public function upgrade()
     {
-        //if( PHP_SAPI === 'cli' )
-        {
-            $db =Factory::GetDataInterface('default');
-            $oBlogModel = new BlogModel($db);
-            $oUserModel = new UserModel($db);
-            $oRet = $oUserModel->VerifyTableDefinition();
-            var_dump($oRet->Get());
-            $oRet = $oBlogModel->VerifyTableDefinition();
-            var_dump($oRet->Get());
-        }
-        //else
-        {
-            var_dump(PHP_SAPI);
-        }
+        $db = Factory::GetDataInterface('default');
+
+        $oBlogModel = new BlogModel($db);
+        $oUserModel = new UserModel($db);
+
+        $oRet = $oUserModel->VerifyTableDefinition();
+        var_dump($oRet->Get());
+
+        $oRet = $oBlogModel->VerifyTableDefinition();
+        var_dump($oRet->Get());
     }
 }

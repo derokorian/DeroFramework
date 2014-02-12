@@ -57,7 +57,9 @@ abstract class BaseModel
                 $oParams->Add(new Parameter($name, $aOpts[$name], $type));
             }
         }
-        if( isset($aOpts['order_by']) && isset(static::$COLUMNS[$aOpts['order_by']]) )
+        if( isset($aOpts['order_by']) && isset(static::$COLUMNS[$aOpts['order_by']]) ){
+
+        }
             $sql .= 'ORDER BY ' . $aOpts['order_by'];
 
         if( isset($aOpts['rows']) )
@@ -176,7 +178,7 @@ abstract class BaseModel
             if( isset($aCol['extra']) &&
                 is_array($aCol['extra']) )
             {
-                if( in_array('nullable', $aCol['extra']) )
+                if( in_array(DB_NULLABLE, $aCol['extra']) )
                 {
                     $sExtra .= 'NULL ';
                 }
@@ -185,7 +187,7 @@ abstract class BaseModel
                     $sExtra .= 'NOT NULL ';
                 }
 
-                if( in_array('auto_increment', $aCol['extra']) )
+                if( in_array(DB_AUTO_INCREMENT, $aCol['extra']) )
                 {
                     $sExtra .= 'auto_increment ';
                 }
@@ -275,6 +277,25 @@ abstract class BaseModel
     public function VerifyTableDefinitionMySQL()
     {
         $oRetVal = new \Dero\Core\RetVal();
+        $strSql = sprintf("SHOW TABLES LIKE '%s'", static::$TABLE_NAME);
+        try {
+            $oRetVal->Set(
+                $this->DB
+                    ->Query($strSql)
+                    ->GetAll()
+            );
+        } catch (DataException $e) {
+            $oRetVal->SetError('Unable to query database', $e);
+            return $oRetVal;
+        }
+        if( count($oRetVal->Get()) == 0 )
+        {
+            $oRetVal = $this->CreateTable();
+            if( $oRetVal->HasFailure() )
+            {
+                return $oRetVal;
+            }
+        }
         $strSql = 'DESCRIBE ' . static::$TABLE_NAME;
         try {
             $oRetVal->Set(
@@ -288,7 +309,7 @@ abstract class BaseModel
         }
         $aRet = [];
         $strUpdate = 'ALTER TABLE ' . static::$TABLE_NAME . ' ';
-        $aTableCols = array_map(function($el) { return (array)$el; } ,$oRetVal->Get());
+        $aTableCols = array_map(function($el) { return (array)$el; }, $oRetVal->Get());
         $aTableCols = array_combine(
             array_column($aTableCols, 'Field'),
             array_values($aTableCols)
@@ -389,7 +410,7 @@ abstract class BaseModel
                 if( isset($aCol['extra']) &&
                     is_array($aCol['extra']) )
                 {
-                    if( in_array('nullable', $aCol['extra']) )
+                    if( in_array(DB_NULLABLE, $aCol['extra']) )
                     {
                         if( $aColMatch['Null'] != 'YES' )
                         {
@@ -404,7 +425,7 @@ abstract class BaseModel
                         }
                     }
 
-                    if( in_array('auto_increment', $aCol['extra']) &&
+                    if( in_array(DB_AUTO_INCREMENT, $aCol['extra']) &&
                         !strpos($aColMatch['Extra'], 'auto_increment') > -1 )
                     {
                         $bColWrong = true;
@@ -517,7 +538,7 @@ abstract class BaseModel
                 if( isset($aCol['extra']) &&
                     is_array($aCol['extra']) )
                 {
-                    if( in_array('nullable', $aCol['extra']) )
+                    if( in_array(DB_NULLABLE, $aCol['extra']) )
                     {
                         $sExtra .= 'NULL ';
                     }
@@ -526,7 +547,7 @@ abstract class BaseModel
                         $sExtra .= 'NOT NULL ';
                     }
 
-                    if( in_array('auto_increment', $aCol['extra']) )
+                    if( in_array(DB_AUTO_INCREMENT, $aCol['extra']) )
                     {
                         $sExtra .= 'auto_increment ';
                     }

@@ -3,7 +3,7 @@
 /**
  * routes for blog pages
  */
-$aRoutes['default'] = [
+$aRoutes[] = [
     'pattern' => '/^$/',
     'controller' => 'App\Controller\BlogController',
     'dependencies' => ['App\Model\BlogModel'],
