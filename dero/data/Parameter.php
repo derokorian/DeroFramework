@@ -7,36 +7,28 @@ namespace Dero\Data;
  *
  * @author Ryan Pallas
  *
- * @property str Name
- * @property str|int|null|bool Value
+ * @property string Name
+ * @property mixed Value
  * @property int Type
- * @property int Engine
  */
 class Parameter
 {
     private $Name = '';
     private $Value = '';
     private $Type = 0;
-    private $Engine = 0;
 
     /**
      * Construct for creating new Parameter
      * @param string $Name the name of the parameter
      * @param string $Value the value to be bound
      * @param int $Type [Optional] Value type (DB_PARAM_INT,DB_PARAM_STR,DB_PARAM_BOOL,DB_PARAM_NULL) [Default: DB_PARAM_STR]
-     * @param int $Engine [Optional] Data engine (DB_ENG_MYSQL,DB_ENG_MSSQL,DB_ENG_POSTGRE, DB_ENG_SQLITE) [Defaults to default database engine]
      */
-    public function __construct($Name, $Value, $Type = NULL, $Engine = NULL)
+    public function __construct($Name, $Value, $Type = NULL)
     {
         $this->SetName($Name);
         $this->SetValue($Value);
         if( !is_null($Type) ) {
             $this->SetType($Type);
-        }
-        if( !is_null($Engine) ) {
-            $this->SetEngine($Engine);
-        } else {
-            $this->SetEngine(\Dero\Core\Config::GetValue('database','default','engine'));
         }
     }
 
@@ -76,31 +68,7 @@ class Parameter
      */
     public function GetName()
     {
-        switch($this->Engine)
-        {
-            case DB_ENG_MYSQL:
-                return ':' . $this->Name;
-            case DB_ENG_MSSQL:
-                switch($this->Type) {
-                    default:
-                        throw new \UnexpectedValueException('Parameter does not yet support MS SQL Server');
-                }
-                break;
-            case DB_ENG_POSTGRE:
-                switch($this->Type) {
-                    default:
-                        throw new \UnexpectedValueException('Parameter does not yet support PostgreSQL');
-                }
-                break;
-            case DB_ENG_SQLITE:
-                switch($this->Type) {
-                    default:
-                        throw new \UnexpectedValueException('Parameter does not yet support SQLite');
-                }
-                break;
-            default:
-                throw new \UnexpectedValueException('Unexpected value found in Parameter::Engine');
-        }
+        return ':' . $this->Name;
     }
 
     /**
@@ -152,57 +120,19 @@ class Parameter
      */
     public function GetType()
     {
-        switch($this->Engine) {
-            case DB_ENG_MYSQL:
-                switch($this->Type) {
-                    case DB_PARAM_INT:
-                        return \PDO::PARAM_INT;
-                    case DB_PARAM_BOOL:
-                        return \PDO::PARAM_BOOL;
-                    case DB_PARAM_NULL:
-                        return \PDO::PARAM_NULL;
-                    case DB_PARAM_STR:
-                    case DB_PARAM_DEC:
-                        return \PDO::PARAM_STR;
-                    default:
-                        throw new \UnexpectedValueException('Unexpected value found in Parameter::Type for MySQL');
-                }
-                break;
-            case DB_ENG_MSSQL:
-                switch($this->Type) {
-                    default:
-                        throw new \UnexpectedValueException('Parameter does not yet support MS SQL Server');
-                }
-                break;
-            case DB_ENG_POSTGRE:
-                switch($this->Type) {
-                    default:
-                        throw new \UnexpectedValueException('Parameter does not yet support PostgreSQL');
-                }
-                break;
-            case DB_ENG_SQLITE:
-                switch($this->Type) {
-                    default:
-                        throw new \UnexpectedValueException('Parameter does not yet support SQLite');
-                }
-                break;
+        switch($this->Type) {
+            case DB_PARAM_INT:
+                return \PDO::PARAM_INT;
+            case DB_PARAM_BOOL:
+                return \PDO::PARAM_BOOL;
+            case DB_PARAM_NULL:
+                return \PDO::PARAM_NULL;
+            case DB_PARAM_STR:
+            case DB_PARAM_DEC:
+                return \PDO::PARAM_STR;
             default:
-                throw new \UnexpectedValueException('Unexpected value found in Parameter::Engine');
+                throw new \UnexpectedValueException('Unexpected value found in Parameter::Type for MySQL');
         }
-    }
-
-    /**
-     * Sets the engine type being used
-     * @param int $Engine One of (DB_ENG_MYSQL, DB_ENG_MSSQL, DB_ENG_ORACLE)
-     * @throws \InvalidArgumentException
-     * @return void
-     */
-    public function SetEngine($Engine)
-    {
-        $acceptable = [DB_ENG_MYSQL, DB_ENG_MSSQL, DB_ENG_POSTGRE, DB_ENG_SQLITE];
-        if( !in_array($Engine, $acceptable, TRUE) )
-            throw new \InvalidArgumentException('type of parameters must be DB_ENG_*');
-        $this->Engine = $Engine;
     }
 
 }

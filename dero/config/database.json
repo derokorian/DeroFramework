@@ -1,6 +1,5 @@
 {
     "default": {
-        "engine": "mysql",
         "host": "localhost",
         "name": "DeroFramework",
         "user": "root",

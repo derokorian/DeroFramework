@@ -30,11 +30,13 @@ abstract class BaseModel
     private function where($reset = FALSE)
     {
         static $Where;
-        if( $reset ) {
+        if( $reset )
+        {
             $Where = FALSE;
             return null;
         }
-        if( $Where === FALSE ) {
+        if( $Where === FALSE )
+        {
             $Where = TRUE;
             return 'WHERE ';
         }
@@ -51,42 +53,57 @@ abstract class BaseModel
             {
                 $type = $this->getParamTypeFromColType($aOpts[$name], $def);
                 if( $type === DB_PARAM_NULL )
-                    $sql .= $this->where() . sprintf('%s IS :%s ', $name, $name);
+                {
+                    $sql .= sprintf('%s %s IS %s ',
+                        $this->where(),
+                        $name,
+                        $aOpts[$name] === true ? 'NULL' : 'NOT NULL'
+                    );
+                }
                 else
-                    $sql .= $this->where() . sprintf('%s=:%s ', $name, $name);
+                {
+                    $sql .= sprintf('%s %s=:%s ',
+                        $this->where(),
+                        $name,
+                        $name
+                    );
+                }
                 $oParams->Add(new Parameter($name, $aOpts[$name], $type));
             }
         }
-        if( isset($aOpts['order_by']) && isset(static::$COLUMNS[$aOpts['order_by']]) ){
 
-        }
+        if( isset($aOpts['order_by']) && isset(static::$COLUMNS[$aOpts['order_by']]) )
+        {
             $sql .= 'ORDER BY ' . $aOpts['order_by'];
+        }
 
         if( isset($aOpts['rows']) )
         {
             $sql .= 'LIMIT :rows ';
             $oParams->Add(new Parameter('rows', $aOpts['rows']));
         }
-        else
+
+        if( isset($aOpts['skip']) )
         {
             $sql .= 'OFFSET :skip ';
             $oParams->Add(new Parameter('skip', $aOpts['skip']));
         }
+
         return $sql;
     }
 
     protected function getParamTypeFromColType($val, $def)
     {
         $return = NULL;
-        if( isset($def['nullable']) && $def['nullable'] && $val === NULL)
+        if( isset($def['nullable']) && $def['nullable'] && is_bool($val))
             $return = DB_PARAM_NULL;
-        elseif( isset($def['col_type']) )
+        elseif( isset($def[COL_TYPE]) )
         {
-            if( $def['col_type'] == COL_TYPE_BOOLEAN )
+            if( $def[COL_TYPE] == COL_TYPE_BOOLEAN )
                 $return = DB_PARAM_BOOL;
-            elseif( $def['col_type'] == COL_TYPE_INTEGER )
+            elseif( $def[COL_TYPE] == COL_TYPE_INTEGER )
                 $return = DB_PARAM_INT;
-            elseif( $def['col_type'] == COL_TYPE_DECIMAL )
+            elseif( $def[COL_TYPE] == COL_TYPE_DECIMAL )
                 $return = DB_PARAM_DEC;
             else
                 $return = DB_PARAM_STR;
@@ -95,7 +112,7 @@ abstract class BaseModel
             throw new \UnexpectedValueException('Unknown column definition');
         return $return;
     }
-
+    
     /**
      * Generates the SQL to create table defined by class properties
      * @return null|string
@@ -106,25 +123,13 @@ abstract class BaseModel
         if( strlen(static::$TABLE_NAME) == 0 || count(static::$COLUMNS) == 0)
             return null;
 
-        if( $this->DB instanceof PDOMysql )
-        {
-            return $this->GenerateCreateTableMySQL();
-        }
-    }
-    /**
-     * Generates the SQL to create table defined by class properties
-     * @return null|string
-     * @throws \UnexpectedValueException
-     */
-    public function GenerateCreateTableMySQL()
-    {
         $strCreate = 'CREATE TABLE IF NOT EXISTS ' . static::$TABLE_NAME . '(';
         foreach( static::$COLUMNS as $strCol => $aCol )
         {
             $sType = '';
             $sKey = '';
             $sExtra = '';
-            switch($aCol['col_type'])
+            switch($aCol[COL_TYPE])
             {
                 case COL_TYPE_BOOLEAN:
                     $sType = 'TINYINT(1)';
@@ -202,9 +207,9 @@ abstract class BaseModel
                 $sExtra .= 'NOT NULL ';
             }
 
-            if( isset($aCol['key']) )
+            if( isset($aCol[KEY_TYPE]) )
             {
-                switch($aCol['key'])
+                switch($aCol[KEY_TYPE])
                 {
                     case KEY_TYPE_PRIMARY:
                         $sKey = 'PRIMARY KEY';
@@ -264,18 +269,6 @@ abstract class BaseModel
      */
     public function VerifyTableDefinition()
     {
-        if( $this->DB instanceof PDOMysql )
-        {
-            return $this->VerifyTableDefinitionMySQL();
-        }
-    }
-    /**
-     * Verifies the current tables definition and updates if necessary
-     * @throws \UnexpectedValueException
-     * @returns \Dero\Core\RetVal
-     */
-    public function VerifyTableDefinitionMySQL()
-    {
         $oRetVal = new \Dero\Core\RetVal();
         $strSql = sprintf("SHOW TABLES LIKE '%s'", static::$TABLE_NAME);
         try {
@@ -328,7 +321,7 @@ abstract class BaseModel
             else
             {
                 $aColMatch = $aTableCols[$strCol];
-                switch($aCol['col_type'])
+                switch($aCol[COL_TYPE])
                 {
                     case COL_TYPE_DATETIME:
                         if( $aColMatch['Type'] !== 'datetime' )
@@ -448,9 +441,9 @@ abstract class BaseModel
                     }
                 }
 
-                if( isset($aCol['key']) )
+                if( isset($aCol[KEY_TYPE]) )
                 {
-                    switch($aCol['key'])
+                    switch($aCol[KEY_TYPE])
                     {
                         case KEY_TYPE_PRIMARY:
                             if( $aColMatch['Key'] != 'PRI' )
@@ -484,7 +477,7 @@ abstract class BaseModel
                 $sType = '';
                 $sKey = '';
                 $sExtra = '';
-                switch($aCol['col_type'])
+                switch($aCol[COL_TYPE])
                 {
                     case COL_TYPE_BOOLEAN:
                         $sType = 'TINYINT(1)';
@@ -562,9 +555,9 @@ abstract class BaseModel
                     $sExtra .= 'NOT NULL ';
                 }
 
-                if( isset($aCol['key']) )
+                if( isset($aCol[KEY_TYPE]) )
                 {
-                    switch($aCol['key'])
+                    switch($aCol[KEY_TYPE])
                     {
                         case KEY_TYPE_PRIMARY:
                             $sKey = 'PRIMARY KEY';

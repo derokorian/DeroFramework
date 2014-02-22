@@ -21,39 +21,39 @@ class BlogModel extends \Dero\Data\BaseModel
 
     protected static $COLUMNS = [
         'post_id' => [
-            'col_type' => COL_TYPE_INTEGER,
+            COL_TYPE => COL_TYPE_INTEGER,
+            KEY_TYPE => KEY_TYPE_PRIMARY,
             'required' => false,
-            'key' => KEY_TYPE_PRIMARY,
             'extra' => [
                 DB_AUTO_INCREMENT
             ]
         ],
         'user_id' => [
-            'col_type' => COL_TYPE_INTEGER,
+            COL_TYPE => COL_TYPE_INTEGER,
+            KEY_TYPE => KEY_TYPE_FOREIGN,
             'required' => true,
-            'key' => KEY_TYPE_FOREIGN,
             'foreign_table' => 'users',
             'foreign_column' => 'user_id'
         ],
         'title' => [
-            'col_type' => COL_TYPE_STRING,
+            COL_TYPE => COL_TYPE_STRING,
             'col_length' => 100,
             'required' => true
         ],
         'body' => [
-            'col_type' => COL_TYPE_TEXT,
+            COL_TYPE => COL_TYPE_TEXT,
             'required' => true
         ],
         'published' => [
-            'col_type' => COL_TYPE_BOOLEAN,
+            COL_TYPE => COL_TYPE_BOOLEAN,
             'required' => false
         ],
         'created' => [
-            'col_type' => COL_TYPE_DATETIME,
+            COL_TYPE => COL_TYPE_DATETIME,
             'required' => false
         ],
         'modified' => [
-            'col_type' => COL_TYPE_DATETIME,
+            COL_TYPE => COL_TYPE_DATETIME,
             'required' => false
         ]
     ];

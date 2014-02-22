@@ -3,81 +3,28 @@
 namespace Dero\Data;
 
 /**
- * Iteratable container for multiple Parameters
+ * Iterable container for multiple Parameters
  * @see Parameter
  * @author Ryan Pallas
  */
-class ParameterCollection implements \Iterator,
-                                     \Countable
+class ParameterCollection extends Collection
 {
-
-    private $Params = [];
-    private $Index = 0;
-
     /**
      * Adds a parameter to the collection
-     * @param Parameter $Param
+     * @param Parameter $aParam
+     * @throws
      * @return ParameterCollection
      */
-    public function Add (Parameter $Param)
+    public function Add ($aParam)
     {
-        $this->Params[] = $Param;
-        return $this;
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see Iterator::current()
-     */
-    public function current ()
-    {
-        return $this->Params[$this->Index];
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see Iterator::key()
-     */
-    public function key ()
-    {
-        return $this->Index;
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see Iterator::next()
-     */
-    public function next ()
-    {
-        ++$this->Index;
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see Iterator::rewind()
-     */
-    public function rewind ()
-    {
-        $this->Index = 0;
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see Iterator::valid()
-     */
-    public function valid ()
-    {
-        return isset($this->Params[$this->Index]);
-    }
-
-    /**
-     * (non-PHPdoc)
-     * @see Countable::count()
-     */
-    public function count ()
-    {
-        return count($this->Params);
+        if( !$aParam instanceof Parameter )
+        {
+            throw new \InvalidArgumentException('Only Dero\Data\Parameter may be passed to ' . __METHOD__);
+        }
+        else
+        {
+            parent::add($aParam);
+            return $this;
+        }
     }
 }
-
-?>

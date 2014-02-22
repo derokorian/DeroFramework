@@ -11,41 +11,42 @@ namespace App\Model;
 
 use \Dero\Data\Factory;
 
+
 class UserModel extends \Dero\Data\BaseModel
 {
     protected static $TABLE_NAME = 'users';
 
     protected static $COLUMNS = [
         'user_id' => [
-            'col_type' => COL_TYPE_INTEGER,
+            COL_TYPE => COL_TYPE_INTEGER,
+            KEY_TYPE => KEY_TYPE_PRIMARY,
             'required' => false,
-            'key' => KEY_TYPE_PRIMARY,
             'extra' => [
                 DB_AUTO_INCREMENT
             ]
         ],
         'username' => [
-            'col_type' => COL_TYPE_STRING,
+            COL_TYPE => COL_TYPE_STRING,
+            KEY_TYPE => KEY_TYPE_UNIQUE,
             'col_length' => 25,
-            'required' => true,
-            'key' => KEY_TYPE_UNIQUE
+            'required' => true
         ],
         'email' => [
-            'col_type' => COL_TYPE_STRING,
+            COL_TYPE => COL_TYPE_STRING,
+            KEY_TYPE => KEY_TYPE_UNIQUE,
             'col_length' => 100,
-            'required' => true,
-            'key' => KEY_TYPE_UNIQUE
+            'required' => true
         ],
         'first_name' => [
-            'col_type' => COL_TYPE_STRING,
+            COL_TYPE => COL_TYPE_STRING,
             'col_length' => 50,
             'required' => false,
             'extra' => [
-                'nullable'
+                DB_NULLABLE
             ]
         ],
         'last_name' => [
-            'col_type' => COL_TYPE_STRING,
+            COL_TYPE => COL_TYPE_STRING,
             'col_length' => 50,
             'required' => false,
             'extra' => [
@@ -53,25 +54,25 @@ class UserModel extends \Dero\Data\BaseModel
             ]
         ],
         'password' => [
-            'col_type' => COL_TYPE_FIXED_STRING,
+            COL_TYPE => COL_TYPE_FIXED_STRING,
             'col_length' => 128,
             'required' => true
         ],
         'salt' => [
-            'col_type' => COL_TYPE_FIXED_STRING,
+            COL_TYPE => COL_TYPE_FIXED_STRING,
             'col_length' => 128,
             'required' => false
         ],
         'active' => [
-            'col_type' => COL_TYPE_BOOLEAN,
+            COL_TYPE => COL_TYPE_BOOLEAN,
             'required' => false
         ],
         'created' => [
-            'col_type' => COL_TYPE_DATETIME,
+            COL_TYPE => COL_TYPE_DATETIME,
             'required' => false
         ],
         'modified' => [
-            'col_type' => COL_TYPE_DATETIME,
+            COL_TYPE => COL_TYPE_DATETIME,
             'required' => false
         ]
     ];
@@ -81,8 +82,8 @@ class UserModel extends \Dero\Data\BaseModel
      */
     public function __construct($db = null)
     {
-        if( !$db instanceof DataInterface )
-            $db =Factory::GetDataInterface('default');
+        if( !$db instanceof \Dero\Data\DataInterface )
+            $db = Factory::GetDataInterface('default');
         parent::__construct($db);
     }
 }
