@@ -1,6 +1,7 @@
 <?php
 
 namespace Dero\Data;
+use Dero\Core\RetVal;
 
 /**
  * Base Model class from which all models inherit
@@ -8,8 +9,17 @@ namespace Dero\Data;
  */
 abstract class BaseModel
 {
+    /**
+     * @var DataInterface
+     */
     protected $DB;
+    /**
+     * @var string
+     */
     protected static $TABLE_NAME = '';
+    /**
+     * @var array
+     */
     protected static $COLUMNS = [];
 
     /**
@@ -19,6 +29,31 @@ abstract class BaseModel
     public function __construct(DataInterface $DB)
     {
         $this->DB = $DB;
+    }
+
+    /**
+     * @param array $aVars
+     * @return RetVal
+     */
+    public function validateInsert(Array $aVars)
+    {
+        $oRetVal = new RetVal();
+        foreach( static::$COLUMNS as $strCol => $aCol )
+        {
+            if( isset($aCol['required']) &&
+                $aCol['required'] === true &&
+                !isset($aVars[$strCol]) )
+            {
+                $oRetVal->AddError($strCol . ' is required.');
+            }
+            if( isset($aCol['col_length']) &&
+                isset($aVars[$strCol]) &&
+                strlen($aVars[$strCol]) > $aCol['col_length'] )
+            {
+                $oRetVal->AddError($strCol . ' is longer than max length (' . $aCol['col_length'] . ')');
+            }
+        }
+        return $oRetVal;
     }
 
     /**
@@ -43,6 +78,11 @@ abstract class BaseModel
         return 'AND ';
     }
 
+    /**
+     * @param ParameterCollection $oParams
+     * @param array $aOpts
+     * @return string
+     */
     protected function GenerateCriteria(ParameterCollection &$oParams, Array $aOpts)
     {
         $this->where(true);
@@ -95,6 +135,12 @@ abstract class BaseModel
         return $sql;
     }
 
+    /**
+     * @param $val
+     * @param $def
+     * @return null|string
+     * @throws \UnexpectedValueException
+     */
     protected function getParamTypeFromColType($val, $def)
     {
         $return = NULL;
@@ -260,7 +306,7 @@ abstract class BaseModel
         try {
             $oRetVal->Set($this->DB->Query($strSql));
         } catch (DataException $e) {
-            $oRetVal->SetError('Unable to query database', $e);
+            $oRetVal->AddError('Unable to query database', $e);
         }
         return $oRetVal;
     }
@@ -281,7 +327,7 @@ abstract class BaseModel
                     ->GetAll()
             );
         } catch (DataException $e) {
-            $oRetVal->SetError('Unable to query database', $e);
+            $oRetVal->AddError('Unable to query database', $e);
             return $oRetVal;
         }
         if( count($oRetVal->Get()) == 0 )
@@ -300,7 +346,7 @@ abstract class BaseModel
                     ->GetAll()
             );
         } catch (DataException $e) {
-            $oRetVal->SetError('Unable to query database', $e);
+            $oRetVal->AddError('Unable to query database', $e);
             return $oRetVal;
         }
         $aRet = [];
@@ -605,7 +651,7 @@ abstract class BaseModel
                 $this->DB->Query($strUpdate);
                 $oRetVal->Set(array_merge($aRet, ['message' => static::$TABLE_NAME . ' has been updated']));
             } catch (\Exception $e) {
-                $oRetVal->SetError('Error updating table ' . static::$TABLE_NAME, $e);
+                $oRetVal->AddError('Error updating table ' . static::$TABLE_NAME, $e);
             }
         }
         else

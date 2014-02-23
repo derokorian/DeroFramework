@@ -5,9 +5,9 @@ namespace Dero\Core;
 class RetVal
 {
     private $mRetval = null;
-    private $iErrorCode = null;
-    private $strError = '';
-    private $oException = null;
+    private $iErrorCode = [];
+    private $strError = [];
+    private $oException = [];
 
     public function Set($mVal)
     {
@@ -19,16 +19,16 @@ class RetVal
         return $this->mRetval;
     }
 
-    public function SetError($strMessage, \Exception $oException, $iCode = null)
+    public function AddError($strMessage, \Exception $oException = null, $iCode = null)
     {
-        $this->strError = $strMessage;
-        $this->oException = $oException;
-        $this->iErrorCode = $iCode;
+        $this->strError[] = $strMessage;
+        $this->oException[] = $oException;
+        $this->iErrorCode[] = $iCode;
     }
 
     public function HasFailure()
     {
-        return strlen($this->strError) > 0 || !is_null($this->oException);
+        return count($this->strError) > 0 || count($this->oException) > 0;
     }
 
     public function GetError()

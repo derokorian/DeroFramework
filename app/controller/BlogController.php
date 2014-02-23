@@ -26,6 +26,7 @@ class BlogController extends \Dero\Core\BaseController
     public function index()
     {
         $iPageSize = 5;
+        $iTotalPosts = 0;
         $iCurPage = isset($_GET['p']) ? (int) $_GET['p'] : 1;
         $aOpts = [
             'rows' => $iPageSize,
@@ -36,30 +37,37 @@ class BlogController extends \Dero\Core\BaseController
         $oRet = $this->model->getPosts($aOpts);
         if( !$oRet->HasFailure() )
         {
-            if( !IS_API_REQUEST )
-            {
-                echo TemplateEngine::LoadView('header', ['title'=>'Index']);
-            }
-            foreach( $oRet->Get() as $oPost )
-            {
-                $oPost->modified = strtotime($oPost->modified);
-                $oPost->created = strtotime($oPost->created);
-                echo TemplateEngine::LoadView('blog/post', (Array)$oPost);
-            }
+            $aPosts = $oRet->Get();
             $oRet = $this->model->getPostCount(['published' => true]);
             if( !$oRet->HasFailure() )
             {
                 $iTotalPosts = $oRet->Get();
+            }
+            if( IS_API_REQUEST )
+            {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'PostCount' => $iTotalPosts,
+                    'Posts' => $aPosts
+                ]);
+            }
+            else
+            {
+                echo TemplateEngine::LoadView('header', ['title'=>'Index']);
+                foreach( $aPosts as $oPost )
+                {
+                    $oPost->modified = strtotime($oPost->modified);
+                    $oPost->created = strtotime($oPost->created);
+                    echo TemplateEngine::LoadView('blog/post', (Array)$oPost);
+                }
                 if( $iTotalPosts > $iPageSize )
                 {
-                    new Pager(
+                    $oPager = new Pager(
                         (int) ceil($iTotalPosts / $iPageSize),
                         $iCurPage
                     );
+                    $oPager->show();
                 }
-            }
-            if( !IS_API_REQUEST )
-            {
                 echo TemplateEngine::LoadView('footer');
             }
         }
@@ -73,7 +81,32 @@ class BlogController extends \Dero\Core\BaseController
 
     public function viewPost($iPostId)
     {
-
+        $oRet = $this->model->getPosts(['post_id' => $iPostId]);
+        if( !$oRet->HasFailure() )
+        {
+            $oPost = $oRet->Get()[0];
+            if( IS_API_REQUEST )
+            {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'Post' => $oPost
+                ]);
+            }
+            else
+            {
+                $oPost->modified = strtotime($oPost->modified);
+                $oPost->created = strtotime($oPost->created);
+                echo TemplateEngine::LoadView('header', ['title'=>'Index']);
+                echo TemplateEngine::LoadView('blog/post', (Array)$oPost);
+                echo TemplateEngine::LoadView('footer');
+            }
+        }
+        else
+        {
+            // ToDo: Proper error handling when capabilities are built
+            echo $oRet->GetError();
+            var_dump($oRet->GetException());
+        }
     }
 
     public function addPost()

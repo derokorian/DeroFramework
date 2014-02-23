@@ -111,7 +111,7 @@ class UserModel extends \Dero\Data\BaseModel
                      ->Get()
             );
         } catch (DataException $e) {
-            $oRetVal->SetError('Unable to query database', $e);
+            $oRetVal->AddError('Unable to query database', $e);
             return $oRetVal;
         }
 

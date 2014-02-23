@@ -97,7 +97,10 @@ class Main
                     $args = [];
                     foreach($aRoute['args'] as $arg)
                     {
-                        $args[] = $aRoute['Match'][$arg];
+                        if( isset($aRoute['Match'][$arg]) )
+                        {
+                            $args[] = $aRoute['Match'][$arg];
+                        }
                     }
                     call_user_func_array([$oController, $method], $args);
                 }

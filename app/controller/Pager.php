@@ -37,7 +37,6 @@ class Pager
         {
             throw new \UnexpectedValueException(__METHOD__ . ' expects parameter 3 to be an integer.');
         }
-        $this->show();
     }
 
     public function show()

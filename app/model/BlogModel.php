@@ -90,13 +90,13 @@ class BlogModel extends \Dero\Data\BaseModel
                      ->GetAll()
             );
         } catch (DataException $e) {
-            $oRetVal->SetError('Unable to query database', $e);
+            $oRetVal->AddError('Unable to query database', $e);
         }
         return $oRetVal;
     }
 
     /**
-     * Gets posts as specified by options
+     * Gets a post count as specified by options
      * @param array $aOpts
      * @return \Dero\Core\RetVal
      */
@@ -105,18 +105,18 @@ class BlogModel extends \Dero\Data\BaseModel
         $oRetVal = new RetVal();
         $oParams = new ParameterCollection();
         $sql = 'SELECT count(1) '
-            . 'FROM ' . self::$TABLE_NAME . ' p '
+            . 'FROM ' . self::$TABLE_NAME . ' '
             . $this->GenerateCriteria($oParams, $aOpts);
         try {
             $oRetVal->Set(
                 $this->DB
-                    ->Prepare($sql)
-                    ->BindParams($oParams)
-                    ->Execute()
-                    ->GetScalar()
+                     ->Prepare($sql)
+                     ->BindParams($oParams)
+                     ->Execute()
+                     ->GetScalar()
             );
         } catch (DataException $e) {
-            $oRetVal->SetError('Unable to query database', $e);
+            $oRetVal->AddError('Unable to query database', $e);
         }
         return $oRetVal;
     }

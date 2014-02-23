@@ -4,7 +4,7 @@
  * routes for blog pages
  */
 $aRoutes[] = [
-    'pattern' => '/^$/',
+    'pattern' => '/^(blog)?$/',
     'controller' => 'App\Controller\BlogController',
     'dependencies' => ['App\Model\BlogModel'],
     'method' => 'index',
@@ -29,7 +29,7 @@ $aRoutes[] = [
     'controller' => 'App\Controller\BlogController',
     'dependencies' => ['App\Model\BlogModel'],
     'method' => 'addPost',
-    'args' => [1]
+    'args' => [2]
 ];
 $aRoutes[] = [
     'pattern' => '#^blog/delete/?$#i',
