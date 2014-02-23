@@ -9,7 +9,10 @@
  */
 namespace App\Model;
 
-use \Dero\Data\Factory;
+use Dero\Core\RetVal;
+use Dero\Data\DataException;
+use Dero\Data\Factory;
+use Dero\Data\Parameter;
 
 
 class UserModel extends \Dero\Data\BaseModel
@@ -85,5 +88,42 @@ class UserModel extends \Dero\Data\BaseModel
         if( !$db instanceof \Dero\Data\DataInterface )
             $db = Factory::GetDataInterface('default');
         parent::__construct($db);
+    }
+
+    public function addUser($strUser, $strEmail, $strPass, $strFName = '', $strLName = '')
+    {
+
+    }
+
+    public function checkLogin($strUser, $strPass)
+    {
+        $oRetVal = new RetVal();
+        $oParam = new Parameter('username', $strUser, DB_PARAM_STR);
+        $strSql = 'SELECT password, salt FROM ' . static::$TABLE_NAME;
+        $strSql .= ' WHERE username = :username AND active = 1';
+        try
+        {
+            $oRetVal->Set(
+                $this->DB
+                     ->Prepare($strSql)
+                     ->BindParam($oParam)
+                     ->Execute()
+                     ->Get()
+            );
+        } catch (DataException $e) {
+            $oRetVal->SetError('Unable to query database', $e);
+            return $oRetVal;
+        }
+
+    }
+
+    private function hashPassword($pass, $salt)
+    {
+        return hash('sha512', substr($salt, 0, 64) . $pass . substr($salt, 64));
+    }
+
+    private function generateSalt()
+    {
+        return hash('sha512', mt_rand());
     }
 }

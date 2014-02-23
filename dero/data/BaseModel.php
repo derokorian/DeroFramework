@@ -72,9 +72,12 @@ abstract class BaseModel
             }
         }
 
-        if( isset($aOpts['order_by']) && isset(static::$COLUMNS[$aOpts['order_by']]) )
+        if( isset($aOpts['order_by']) &&
+            ((strpos($aOpts['order_by'], ' ') !== FALSE &&
+              isset(static::$COLUMNS[substr($aOpts['order_by'], 0, strpos($aOpts['order_by'], ' '))])) ||
+            isset(static::$COLUMNS[$aOpts['order_by']])) )
         {
-            $sql .= 'ORDER BY ' . $aOpts['order_by'];
+            $sql .= 'ORDER BY ' . $aOpts['order_by'] . ' ';
         }
 
         if( isset($aOpts['rows']) )

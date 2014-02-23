@@ -138,6 +138,7 @@ class PDOMysql implements DataInterface
      */
     public function Prepare($Query)
     {
+        static::LogQuery($Query);
         $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
         try
         {
@@ -165,6 +166,7 @@ class PDOMysql implements DataInterface
      */
     public function Query($Query)
     {
+        static::LogQuery($Query);
         $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
         try
         {
@@ -181,6 +183,12 @@ class PDOMysql implements DataInterface
         {
             throw new DataException('Error preparing query in '. __CLASS__ . '::' . __FUNCTION__, 0, $e);
         }
+    }
+
+    public static function LogQuery($strQuery)
+    {
+        static $i = 0;
+        header(sprintf('x-query(%d): %s', $i++, $strQuery));
     }
 
     /**

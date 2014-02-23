@@ -22,3 +22,8 @@ div.blogPost > span.body
     text-align: left;
     text-indent: 10px;
 }
+div.blogPost > span.user
+{
+    float: left;
+    clear: both;
+}

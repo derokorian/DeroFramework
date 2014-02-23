@@ -11,7 +11,6 @@ namespace Dero\Core;
 
 class Main
 {
-
     public static function init()
     {
         // Load settings
@@ -31,17 +30,34 @@ class Main
         if( PHP_SAPI === 'cli' )
         {
             $strURI = !empty($GLOBALS["argv"][1]) ? $GLOBALS["argv"][1] : '';
+            define('IS_API_REQUEST', false);
         }
         else
         {
             $strURI = trim($_GET['REQUEST'], '/');
+            if( substr($strURI, 0, 3) == 'api' )
+            {
+                define('IS_API_REQUEST', true);
+                $strURI = substr($strURI, 4);
+            }
+            else
+            {
+                define('IS_API_REQUEST', false);
+            }
         }
 
         // Load defined routes
         $aRoutes = [];
         $files = glob(ROOT . '/app/routes/*.php');
         foreach($files as $file)
+        {
             include_once $file;
+        }
+        $files = glob(ROOT . '/dero/routes/*.php');
+        foreach($files as $file)
+        {
+            include_once $file;
+        }
 
         $fLoadRoute = function(Array $aRoute)
         {
@@ -49,16 +65,16 @@ class Main
                 $oController = new $aRoute['controller']();
             else
             {
-                $aDeps = array();
+                $aDep = array();
                 foreach( $aRoute['dependencies'] as $strDependency )
                 {
                     if( class_exists($strDependency) )
                     {
-                        $aDeps[] = new $strDependency();
+                        $aDep[] = new $strDependency();
                     }
                 }
                 $oRef = new \ReflectionClass($aRoute['controller']);
-                $oController = $oRef->newInstanceArgs($aDeps);
+                $oController = $oRef->newInstanceArgs($aDep);
             }
 
             if( is_numeric($aRoute['method']) )
@@ -76,12 +92,19 @@ class Main
             }
             else
             {
-                $args = [];
-                foreach($aRoute['args'] as $arg)
+                if( count($aRoute['args']) > 1 )
                 {
-                    $args[] = $aRoute['Match'][$arg];
+                    $args = [];
+                    foreach($aRoute['args'] as $arg)
+                    {
+                        $args[] = $aRoute['Match'][$arg];
+                    }
+                    call_user_func_array([$oController, $method], $args);
                 }
-                $oController->{$method}($args);
+                else
+                {
+                    $oController->{$method}($aRoute['Match'][$aRoute['args'][0]]);
+                }
             }
         };
 

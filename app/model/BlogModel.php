@@ -77,16 +77,44 @@ class BlogModel extends \Dero\Data\BaseModel
     {
         $oRetVal = new RetVal();
         $oParams = new ParameterCollection();
-        if( !isset($aOpts['order_by']) )
-            $aOpts['order_by'] = 'post_date DESC';
-        $sql = 'SELECT * FROM ' . self::$TABLE_NAME . ' ';
-        $sql .= $this->GenerateCriteria($oParams, $aOpts);
+        $sql = 'SELECT title, body, p.created, p.modified, u.username '
+             . 'FROM ' . self::$TABLE_NAME . ' p '
+             . 'JOIN users u ON u.user_id = p.user_id '
+             . $this->GenerateCriteria($oParams, $aOpts);
         try {
             $oRetVal->Set(
-                $this->DB->Prepare($sql)
+                $this->DB
+                     ->Prepare($sql)
+                     ->BindParams($oParams)
+                     ->Execute()
+                     ->GetAll()
+            );
+        } catch (DataException $e) {
+            $oRetVal->SetError('Unable to query database', $e);
+        }
+        return $oRetVal;
+    }
+
+    /**
+     * Gets posts as specified by options
+     * @param array $aOpts
+     * @return \Dero\Core\RetVal
+     */
+    public function getPostCount(Array $aOpts)
+    {
+        $oRetVal = new RetVal();
+        $oParams = new ParameterCollection();
+        $sql = 'SELECT count(1) '
+            . 'FROM ' . self::$TABLE_NAME . ' p '
+            . $this->GenerateCriteria($oParams, $aOpts);
+        try {
+            $oRetVal->Set(
+                $this->DB
+                    ->Prepare($sql)
                     ->BindParams($oParams)
                     ->Execute()
-                    ->GetAll());
+                    ->GetScalar()
+            );
         } catch (DataException $e) {
             $oRetVal->SetError('Unable to query database', $e);
         }

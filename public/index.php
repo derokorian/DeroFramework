@@ -1,5 +1,8 @@
 <?php
 
+include 'Timer.php';
+$t = getTimer();
+
 /**
  * Single point of entry
  * User: Ryan Pallas
@@ -51,3 +54,5 @@ function dump(&$var)
 }
 
 Dero\Core\Main::Init();
+
+header('x-timing-elapsed: '. $t->getElapsed());

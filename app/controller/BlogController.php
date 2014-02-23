@@ -20,22 +20,48 @@ class BlogController extends \Dero\Core\BaseController
     {
         $this->model = $oBlogModel;
         ResourceManager::AddStyle('blog');
+        ResourceManager::AddScript('angular');
     }
 
     public function index()
     {
-        $aOpts = ['rows' => 5];
+        $iPageSize = 5;
+        $iCurPage = isset($_GET['p']) ? (int) $_GET['p'] : 1;
+        $aOpts = [
+            'rows' => $iPageSize,
+            'skip' => $iCurPage > 1 ? ($iCurPage - 1) * $iPageSize : 0,
+            'order_by' => 'created DESC',
+            'published' => true
+        ];
         $oRet = $this->model->getPosts($aOpts);
         if( !$oRet->HasFailure() )
         {
-            echo TemplateEngine::LoadView('header', ['title'=>'Index']);
+            if( !IS_API_REQUEST )
+            {
+                echo TemplateEngine::LoadView('header', ['title'=>'Index']);
+            }
             foreach( $oRet->Get() as $oPost )
             {
                 $oPost->modified = strtotime($oPost->modified);
                 $oPost->created = strtotime($oPost->created);
                 echo TemplateEngine::LoadView('blog/post', (Array)$oPost);
             }
-            echo TemplateEngine::LoadView('footer');
+            $oRet = $this->model->getPostCount(['published' => true]);
+            if( !$oRet->HasFailure() )
+            {
+                $iTotalPosts = $oRet->Get();
+                if( $iTotalPosts > $iPageSize )
+                {
+                    new Pager(
+                        (int) ceil($iTotalPosts / $iPageSize),
+                        $iCurPage
+                    );
+                }
+            }
+            if( !IS_API_REQUEST )
+            {
+                echo TemplateEngine::LoadView('footer');
+            }
         }
         else
         {
