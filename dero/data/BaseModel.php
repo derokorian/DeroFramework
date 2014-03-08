@@ -46,11 +46,19 @@ abstract class BaseModel
             {
                 $oRetVal->AddError($strCol . ' is required.');
             }
+
             if( isset($aCol['col_length']) &&
                 isset($aVars[$strCol]) &&
                 strlen($aVars[$strCol]) > $aCol['col_length'] )
             {
                 $oRetVal->AddError($strCol . ' is longer than max length (' . $aCol['col_length'] . ')');
+            }
+
+            if( isset($aCol['validation_pattern']) &&
+                isset($aVars[$strCol]) &&
+                !preg_match($aCol['validation_pattern'],$aVars[$strCol]) )
+            {
+                $oRetVal->AddError($strCol . ' did not validate');
             }
         }
         return $oRetVal;
@@ -78,12 +86,29 @@ abstract class BaseModel
         return 'AND ';
     }
 
+    protected function GenerateInsert(ParameterCollection &$oParams, Array $aOpts)
+    {
+        $aCols = [];
+        foreach( static::$COLUMNS as $name => $def)
+        {
+            if( isset($aOpts[$name]) )
+            {
+                $type = $this->getParamTypeFromColType($aOpts[$name], $def);
+                $oParams->Add(new Parameter($name, $aOpts[$name], $type));
+                $aCols[] = $name;
+            }
+        }
+        return '(`' . implode('`,`', $aCols) . '`) VALUES '
+             . '(:' . implode(',:', $aCols) . ')';
+    }
+
     /**
      * @param ParameterCollection $oParams
      * @param array $aOpts
+     * @param string $strColPrefix
      * @return string
      */
-    protected function GenerateCriteria(ParameterCollection &$oParams, Array $aOpts)
+    protected function GenerateCriteria(ParameterCollection &$oParams, Array $aOpts, $strColPrefix = '')
     {
         $this->where(true);
         $sql = '';
@@ -92,23 +117,24 @@ abstract class BaseModel
             if( isset($aOpts[$name]) )
             {
                 $type = $this->getParamTypeFromColType($aOpts[$name], $def);
-                if( $type === DB_PARAM_NULL )
+                if( $type === DB_PARAM_NULL && $aOpts[$name] === null )
                 {
-                    $sql .= sprintf('%s %s IS %s ',
+                    $sql .= sprintf('%s %s%s IS NULL ',
                         $this->where(),
-                        $name,
-                        $aOpts[$name] === true ? 'NULL' : 'NOT NULL'
+                        $strColPrefix,
+                        $name
                     );
                 }
                 else
                 {
-                    $sql .= sprintf('%s %s=:%s ',
+                    $sql .= sprintf('%s %s%s=:%s ',
                         $this->where(),
+                        $strColPrefix,
                         $name,
                         $name
                     );
+                    $oParams->Add(new Parameter($name, $aOpts[$name], $type));
                 }
-                $oParams->Add(new Parameter($name, $aOpts[$name], $type));
             }
         }
 
@@ -145,7 +171,9 @@ abstract class BaseModel
     {
         $return = NULL;
         if( isset($def['nullable']) && $def['nullable'] && is_bool($val))
+        {
             $return = DB_PARAM_NULL;
+        }
         elseif( isset($def[COL_TYPE]) )
         {
             if( $def[COL_TYPE] == COL_TYPE_BOOLEAN )
@@ -158,10 +186,12 @@ abstract class BaseModel
                 $return = DB_PARAM_STR;
         }
         if( $return === NULL )
+        {
             throw new \UnexpectedValueException('Unknown column definition');
+        }
         return $return;
     }
-    
+
     /**
      * Generates the SQL to create table defined by class properties
      * @return null|string
@@ -172,7 +202,7 @@ abstract class BaseModel
         if( strlen(static::$TABLE_NAME) == 0 || count(static::$COLUMNS) == 0)
             return null;
 
-        $strCreate = 'CREATE TABLE IF NOT EXISTS ' . static::$TABLE_NAME . '(';
+        $strCreate = 'CREATE TABLE IF NOT EXISTS `' . static::$TABLE_NAME . '` (';
         foreach( static::$COLUMNS as $strCol => $aCol )
         {
             $sType = '';
@@ -271,7 +301,7 @@ abstract class BaseModel
                             isset($aCol['foreign_column']) )
                         {
                             $sKey = sprintf(
-                                ",\n\t\tFOREIGN KEY %s_%s (%s)\n\t\t\tREFERENCES %s (%s)",
+                                ",\n\t\tFOREIGN KEY %s_%s (%s)\n\t\t\tREFERENCES `%s` (%s)",
                                 $aCol['foreign_table'],
                                 $aCol['foreign_column'],
                                 $strCol,
@@ -301,7 +331,7 @@ abstract class BaseModel
      */
     public function CreateTable()
     {
-        $oRetVal = new \Dero\Core\RetVal();
+        $oRetVal = new RetVal();
         $strSql = $this->GenerateCreateTable();
         try {
             $oRetVal->Set($this->DB->Query($strSql));
@@ -318,7 +348,7 @@ abstract class BaseModel
      */
     public function VerifyTableDefinition()
     {
-        $oRetVal = new \Dero\Core\RetVal();
+        $oRetVal = new RetVal();
         $strSql = sprintf("SHOW TABLES LIKE '%s'", static::$TABLE_NAME);
         try {
             $oRetVal->Set(
@@ -333,12 +363,9 @@ abstract class BaseModel
         if( count($oRetVal->Get()) == 0 )
         {
             $oRetVal = $this->CreateTable();
-            if( $oRetVal->HasFailure() )
-            {
-                return $oRetVal;
-            }
+            return $oRetVal;
         }
-        $strSql = 'DESCRIBE ' . static::$TABLE_NAME;
+        $strSql = sprintf('DESCRIBE `%s`', static::$TABLE_NAME);
         try {
             $oRetVal->Set(
                 $this->DB
@@ -350,7 +377,7 @@ abstract class BaseModel
             return $oRetVal;
         }
         $aRet = [];
-        $strUpdate = 'ALTER TABLE ' . static::$TABLE_NAME . ' ';
+        $strUpdate = 'ALTER TABLE `' . static::$TABLE_NAME . '` ';
         $aTableCols = array_map(function($el) { return (array)$el; }, $oRetVal->Get());
         $aTableCols = array_combine(
             array_column($aTableCols, 'Field'),
@@ -399,17 +426,17 @@ abstract class BaseModel
                         }
                         break;
                     case COL_TYPE_INTEGER:
-                            $sType = sprintf(
-                                "int(%d)",
-                                (isset($aCol['col_length']) && is_numeric($aCol['col_length'])
-                                    ? $aCol['col_length']
-                                    : 11
-                                )
-                            );
-                            if( $aColMatch['Type'] !== $sType )
-                            {
-                                $bColWrong = true;
-                            }
+                        $sType = sprintf(
+                            "int(%d)",
+                            (isset($aCol['col_length']) && is_numeric($aCol['col_length'])
+                                ? $aCol['col_length']
+                                : 11
+                            )
+                        );
+                        if( $aColMatch['Type'] !== $sType )
+                        {
+                            $bColWrong = true;
+                        }
                         break;
                     case COL_TYPE_BOOLEAN:
                         if( $aColMatch['Type'] !== 'tinyint(1)' )
@@ -619,7 +646,7 @@ abstract class BaseModel
                                 isset($aCol['foreign_column']) )
                             {
                                 $sKey = sprintf(
-                                    ",\n\t\tFOREIGN KEY %s_%s (%s)\n\t\t\tREFERENCES %s (%s)",
+                                    ",\n\t\tFOREIGN KEY %s_%s (%s)\n\t\t\tREFERENCES `%s` (%s)",
                                     $aCol['foreign_table'],
                                     $aCol['foreign_column'],
                                     $strCol,

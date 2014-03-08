@@ -27,6 +27,10 @@ class ResourceManager {
             {
                 if( $script['name'] == $fileName )
                 {
+                    if( in_array($script['src'], self::$scripts) )
+                    {
+                        break;
+                    }
                     if( count($script['dep']) > 0 )
                     {
                         foreach( $script['dep'] as $dep )

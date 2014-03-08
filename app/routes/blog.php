@@ -29,7 +29,7 @@ $aRoutes[] = [
     'controller' => 'App\Controller\BlogController',
     'dependencies' => ['App\Model\BlogModel'],
     'method' => 'addPost',
-    'args' => [2]
+    'args' => []
 ];
 $aRoutes[] = [
     'pattern' => '#^blog/delete/?$#i',

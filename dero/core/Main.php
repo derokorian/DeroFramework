@@ -86,7 +86,7 @@ class Main
                 $method = $aRoute['method'];
             }
 
-            if( empty($aRoute['args']) )
+            if( empty($aRoute['args']) || !isset($aRoute['Match'][$aRoute['args'][0]]))
             {
                 $oController->{$method}();
             }

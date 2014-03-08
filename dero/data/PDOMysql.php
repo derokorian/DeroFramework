@@ -188,7 +188,18 @@ class PDOMysql implements DataInterface
     public static function LogQuery($strQuery)
     {
         static $i = 0;
-        header(sprintf('x-query(%d): %s', $i++, $strQuery));
+        if( PHP_SAPI == 'cli' )
+        {
+            file_put_contents(
+                '/tmp/query-'.date('ymdhm').'.log',
+                sprintf("query(%d): %s\n", $i++, $strQuery),
+                FILE_APPEND
+            );
+        }
+        else
+        {
+            header(sprintf('x-query(%d): %s', $i++, $strQuery));
+        }
     }
 
     /**

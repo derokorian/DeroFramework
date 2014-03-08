@@ -95,8 +95,6 @@ class TemplateEngine {
                             }
                         }
                 }
-                if( strpos($strContent, $matches[0][$k]) !== FALSE )
-                    $strContent = str_replace($matches[0][$k], '', $strContent);
             }
         }
 
@@ -113,8 +111,8 @@ class TemplateEngine {
                 }
                 if( class_exists($class) || $class == 'static' ) {
                     if( method_exists($class, $method) || ($class == 'static' && function_exists($method)) ) {
-                        if( strpos($args,',') !== FALSE ) {
-                            $args = explode(',', $args);
+                        if( preg_match('/(?<![^\\\]\\\)' . preg_quote(',', '/') . '/' ,$args) ) {
+                            $args = preg_split('/(?<![^\\\]\\\)' . preg_quote(',', '/') . '/', $args);;
                             foreach( $args as &$arg )
                             {
                                 if( isset($$arg) )
@@ -142,6 +140,22 @@ class TemplateEngine {
                     throw new \UnexpectedValueException('Class not found ('.$class.')');
                 }
                 $strContent = str_replace($match, '', $strContent);
+            }
+        }
+
+
+        if (preg_match_all('#\{(\w+)\|(.+)\}#i', $strContent, $matches)) {
+            foreach($matches[1] as $k => $match)
+            {
+                if( isset($$match) )
+                {
+                    $replace = $$match;
+                }
+                else
+                {
+                    $replace = $matches[2][$k];
+                }
+                $strContent = str_replace($matches[0][$k], $replace, $strContent);
             }
         }
 
