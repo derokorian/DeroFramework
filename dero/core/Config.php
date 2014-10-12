@@ -19,42 +19,52 @@ class Config
             $config = [];
             if( is_readable(ROOT . DS . 'dero' . DS . 'config' . DS . $file . '.json') )
             {
-                $config = self::MergeConfig($config, json_decode(
-                    file_get_contents(ROOT . DS . 'dero' . DS . 'config' . DS . $file . '.json'),
-                    true
-                ));
+                $config = self::MergeConfig(
+                    $config,
+                    json_decode(
+                        strip_json_comments(
+                            file_get_contents(ROOT . DS . 'dero' . DS . 'config' . DS . $file . '.json')
+                        ),
+                        true
+                    )
+                );
             }
             if( is_readable(ROOT . DS . 'config' . DS . $file . '.json') )
             {
-                $config = self::MergeConfig($config, json_decode(
-                    file_get_contents(ROOT . DS . 'config' . DS . $file . '.json'),
+                $config = self::MergeConfig(
+                    $config,
+                    json_decode(
+                        strip_json_comments(
+                            file_get_contents(ROOT . DS . 'config' . DS . $file . '.json')
+                        ),
                     true
-                ));
+                    )
+                );
             }
             self::$Config[$file] = $config;
         }
     }
 
     /**
-     * @param mixed $mConfig
-     * @param mixed $mVal
+     * @param mixed $aConfig
+     * @param mixed $aVal
      * @returns array
      */
-    private static function MergeConfig(Array $mConfig, Array $mVal)
+    private static function MergeConfig(Array $aConfig, Array $aVal)
     {
         $aReturn = [];
-        foreach( $mVal as $k => $v )
+        foreach( $aVal as $k => $v )
         {
-            if( isset($mConfig[$k]) && is_array($mConfig[$k]) && is_array($v) )
+            if( isset($aConfig[$k]) && is_array($aConfig[$k]) && is_array($v) )
             {
-                $aReturn[$k] = self::MergeConfig($mConfig[$k], $v);
+                $aReturn[$k] = self::MergeConfig($aConfig[$k], $v);
             }
             else
             {
                 $aReturn[$k] = $v;
             }
         }
-        foreach( $mConfig as $k => $v )
+        foreach( $aConfig as $k => $v )
         {
             if( !isset($aReturn[$k]) )
             {
@@ -85,8 +95,14 @@ class Config
             }
             return $last;
         }
-        return NULL;
+        return 0;
     }
+}
+
+function strip_json_comments($strJson) {
+    $strJson = preg_replace('@/\*.*?\*/@m', null, $strJson);
+    $strJson = preg_replace('@^\s*(//|#).*$@', null, $strJson);
+    return $strJson;
 }
 
 ?>

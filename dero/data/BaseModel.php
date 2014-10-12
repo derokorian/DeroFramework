@@ -1,7 +1,7 @@
 <?php
 
 namespace Dero\Data;
-use Dero\Core\RetVal;
+use Dero\Core\Retval;
 
 /**
  * Base Model class from which all models inherit
@@ -23,6 +23,12 @@ abstract class BaseModel
     protected static $COLUMNS = [];
 
     /**
+     * @const Used in queries that do a group concatenation
+     */
+    const CONCAT_SEPARATOR = '--|--';
+
+
+    /**
      * Initializes a instance of BaseModel
      * @param DataInterface $DB
      */
@@ -33,11 +39,11 @@ abstract class BaseModel
 
     /**
      * @param array $aVars
-     * @return RetVal
+     * @return Retval
      */
-    public function validateInsert(Array $aVars)
+    public function validate(Array $aVars)
     {
-        $oRetVal = new RetVal();
+        $oRetVal = new Retval();
         foreach( static::$COLUMNS as $strCol => $aCol )
         {
             if( isset($aCol['required']) &&
@@ -88,19 +94,62 @@ abstract class BaseModel
 
     protected function GenerateInsert(ParameterCollection &$oParams, Array $aOpts)
     {
-        $aCols = [];
+        $strCols = '(';
+        $strVals = '(';
         foreach( static::$COLUMNS as $name => $def)
         {
             if( isset($aOpts[$name]) )
             {
                 $type = $this->getParamTypeFromColType($aOpts[$name], $def);
                 $oParams->Add(new Parameter($name, $aOpts[$name], $type));
-                $aCols[] = $name;
+                $strCols .= sprintf('`%s`,', $name);
+                $strVals .= sprintf(':%s,', $name);
+            }
+            elseif( strtolower($name) == 'created' || strtolower($name) == 'modified' )
+            {
+                $strCols .= sprintf('`%s`,', $name);
+                $strVals .= 'NOW(),';
             }
         }
-        return '(`' . implode('`,`', $aCols) . '`) VALUES '
-             . '(:' . implode(',:', $aCols) . ')';
+        return substr($strCols, 0, -1) . ') VALUES ' . substr($strVals, 0, -1) . ')';
     }
+
+    protected  function GenerateUpdate(ParameterCollection &$oParams, Array $aOpts)
+    {
+        $strRet = 'SET ';
+        $strIdField = '';
+        $cIdType = null;
+        foreach( static::$COLUMNS as $name => $def)
+        {
+            if( strtolower($name) == 'created' )
+            {
+                continue;
+            }
+            elseif( isset($def[KEY_TYPE]) && $def[KEY_TYPE] === KEY_TYPE_PRIMARY )
+            {
+                $strIdField = $name;
+                $cIdType =  $this->getParamTypeFromColType($aOpts[$name], $def);
+            }
+            elseif( isset($aOpts[$name]) )
+            {
+                $type = $this->getParamTypeFromColType($aOpts[$name], $def);
+                $oParams->Add(new Parameter($name, $aOpts[$name], $type));
+                $strRet .= sprintf("`%s` = :%s,", $name, $name);
+            }
+            elseif( strtolower($name) == 'modified' )
+            {
+                $strRet .= sprintf('`%s` = NOW(),', $name);
+            }
+        }
+        $strRet = substr($strRet, 0, -1) . ' ';
+        if( strlen($strIdField) > 0 && isset($aOpts[$strIdField]) )
+        {
+            $oParams->Add(new Parameter($strIdField, $aOpts[$strIdField], $cIdType));
+            $strRet .= sprintf("WHERE `%s` = :%s", $strIdField, $strIdField);
+        }
+        return $strRet;
+    }
+
 
     /**
      * @param ParameterCollection $oParams
@@ -143,19 +192,19 @@ abstract class BaseModel
               isset(static::$COLUMNS[substr($aOpts['order_by'], 0, strpos($aOpts['order_by'], ' '))])) ||
             isset(static::$COLUMNS[$aOpts['order_by']])) )
         {
-            $sql .= 'ORDER BY ' . $aOpts['order_by'] . ' ';
+            $sql .= 'ORDER BY ' . $strColPrefix . $aOpts['order_by'] . ' ';
         }
 
         if( isset($aOpts['rows']) )
         {
             $sql .= 'LIMIT :rows ';
-            $oParams->Add(new Parameter('rows', $aOpts['rows']));
+            $oParams->Add(new Parameter('rows', $aOpts['rows'], DB_PARAM_INT));
         }
 
         if( isset($aOpts['skip']) )
         {
             $sql .= 'OFFSET :skip ';
-            $oParams->Add(new Parameter('skip', $aOpts['skip']));
+            $oParams->Add(new Parameter('skip', $aOpts['skip'], DB_PARAM_INT));
         }
 
         return $sql;
@@ -327,11 +376,11 @@ abstract class BaseModel
 
     /**
      * Executes the create table script returned by GenerateCreateTable
-     * @returns \Dero\Core\RetVal
+     * @returns \Dero\Core\Retval
      */
     public function CreateTable()
     {
-        $oRetVal = new RetVal();
+        $oRetVal = new Retval();
         $strSql = $this->GenerateCreateTable();
         try {
             $oRetVal->Set($this->DB->Query($strSql));
@@ -344,11 +393,11 @@ abstract class BaseModel
     /**
      * Verifies the current tables definition and updates if necessary
      * @throws \UnexpectedValueException
-     * @returns \Dero\Core\RetVal
+     * @returns \Dero\Core\Retval
      */
     public function VerifyTableDefinition()
     {
-        $oRetVal = new RetVal();
+        $oRetVal = new Retval();
         $strSql = sprintf("SHOW TABLES LIKE '%s'", static::$TABLE_NAME);
         try {
             $oRetVal->Set(

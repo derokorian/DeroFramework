@@ -32,6 +32,10 @@ class PDOMysql implements DataInterface
 
     /**
      * Opens a connection for a query
+     * @param bool $bIsRead
+     * @returns \PDO
+     * @throws \UnexpectedValueException
+     * @throws DataException
      */
     protected function OpenConnection($bIsRead)
     {
@@ -188,6 +192,9 @@ class PDOMysql implements DataInterface
     public static function LogQuery($strQuery)
     {
         static $i = 0;
+        if( !IS_DEBUG )
+            return;
+
         if( PHP_SAPI == 'cli' )
         {
             file_put_contents(

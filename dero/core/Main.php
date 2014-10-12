@@ -11,8 +11,36 @@ namespace Dero\Core;
 
 class Main
 {
+    /**
+     * Initializes and runs the application
+     * @codeCoverageIgnore
+     */
     public static function init()
     {
+        /*
+         * Define error reporting settings
+         */
+        define('IS_DEBUG', (bool)getenv('PHP_DEBUG')  === true);
+        if( IS_DEBUG )
+        {
+            ini_set('error_reporting', E_ALL);
+            ini_set('display_errors', true);
+            ini_set('log_errors', false);
+        }
+        else
+        {
+            ini_set('error_reporting', E_WARNING);
+            ini_set('display_errors', false);
+            ini_set('log_errors', true);
+            ini_set('error_log', dirname(__DIR__) . '/logs/' . date('Y-m-d') . '-error.log');
+        }
+
+        if( isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' &&
+            isset($_SERVER["CONTENT_TYPE"]) && stripos($_SERVER["CONTENT_TYPE"], "application/json") === 0)
+        {
+            $_POST = json_decode(file_get_contents("php://input"), true);
+        }
+
         // Load settings
         $files = glob(dirname(__DIR__) . '/settings/*.php');
         foreach($files as $file)
@@ -21,9 +49,17 @@ class Main
                 require_once $file;
         }
 
+        $strSessionName = Config::GetValue('website','session_name');
+        session_name($strSessionName);
+        session_start();
+
         self::LoadRoute();
     }
 
+    /**
+     * Loads the controllers and models necessary to complete the given route request
+     * @codeCoverageIgnore
+     */
     private static function LoadRoute()
     {
         $bRouteFound = false;
@@ -48,12 +84,12 @@ class Main
 
         // Load defined routes
         $aRoutes = [];
-        $files = glob(ROOT . '/app/routes/*.php');
+        $files = glob(ROOT . '/dero/routes/*.php');
         foreach($files as $file)
         {
             include_once $file;
         }
-        $files = glob(ROOT . '/dero/routes/*.php');
+        $files = glob(ROOT . '/app/routes/*.php');
         foreach($files as $file)
         {
             include_once $file;
@@ -86,9 +122,10 @@ class Main
                 $method = $aRoute['method'];
             }
 
+            Timing::start('controller');
             if( empty($aRoute['args']) || !isset($aRoute['Match'][$aRoute['args'][0]]))
             {
-                $oController->{$method}();
+                $mRet = $oController->{$method}();
             }
             else
             {
@@ -102,13 +139,23 @@ class Main
                             $args[] = $aRoute['Match'][$arg];
                         }
                     }
-                    call_user_func_array([$oController, $method], $args);
+                    $mRet = call_user_func_array([$oController, $method], $args);
                 }
                 else
                 {
-                    $oController->{$method}($aRoute['Match'][$aRoute['args'][0]]);
+                    $mRet = $oController->{$method}($aRoute['Match'][$aRoute['args'][0]]);
                 }
             }
+
+            if( is_scalar($mRet) )
+            {
+                echo $mRet;
+            }
+            elseif( !empty($mRet) )
+            {
+                echo json_encode($mRet);
+            }
+            Timing::end('controller');
         };
 
         // Attempt to find the requested route

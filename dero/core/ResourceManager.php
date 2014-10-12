@@ -15,10 +15,24 @@ class ResourceManager {
         ],
         [
             'name' => 'angular',
-            'src' => 'angular.min.js',
+            'src' => '//ajax.googleapis.com/ajax/libs/angularjs/1.2.14/angular.min.js',
             'dep' => ['jquery']
         ]
     ];
+
+    private static function genScriptSrc($strSrc) {
+        if( substr($strSrc, 0, 2) == '//' ) {
+            return $strSrc;
+        }
+        return Config::GetValue('website', 'script_url') . $strSrc;
+    }
+
+    private static function genStyleSrc($strSrc) {
+        if( substr($strSrc, 0, 2) == '//' ) {
+            return $strSrc;
+        }
+        return Config::GetValue('website', 'style_url') . $strSrc;
+    }
 
     public static function AddScript($fileName) {
         if( in_array($fileName, array_column(static::$KNOWN_SCRIPTS, 'name')) )
@@ -27,7 +41,7 @@ class ResourceManager {
             {
                 if( $script['name'] == $fileName )
                 {
-                    if( in_array($script['src'], self::$scripts) )
+                    if( in_array(self::genScriptSrc($script['src']), self::$scripts) )
                     {
                         break;
                     }
@@ -38,7 +52,7 @@ class ResourceManager {
                             static::AddScript($dep);
                         }
                     }
-                    static::$scripts[] = $script['src'];
+                    static::$scripts[] = self::genScriptSrc($script['src']);
                     break;
                 }
             }
@@ -50,9 +64,9 @@ class ResourceManager {
                 $fileName .= '.js';
             }
             $path = ROOT . '/public/scripts/' . $fileName;
-            if( is_readable($path) && !in_array($fileName,self::$scripts) )
+            if( is_readable($path) && !in_array(self::genScriptSrc($fileName),self::$scripts) )
             {
-                self::$scripts[] = $fileName;
+                self::$scripts[] = self::genScriptSrc($fileName);
             }
             else
             {
@@ -63,20 +77,25 @@ class ResourceManager {
 
     public static function AddStyle($fileName) {
         if( substr($fileName, -4, 4) != '.css' )
+        {
             $fileName .= '.css';
+        }
         $path = ROOT . '/public/styles/' . $fileName;
-        if( is_readable($path) && !in_array($fileName, self::$styles) )
-            self::$styles[] = $fileName;
+        if( is_readable($path) && !in_array(self::genStyleSrc($fileName), self::$styles) )
+        {
+            self::$styles[] = self::genStyleSrc($fileName);
+        }
         else
+        {
             throw new \OutOfBoundsException('Unable to read style ' . $fileName);
-        return '';
+        }
     }
 
     public static function LoadScripts() {
-        return TemplateEngine::LoadView('styles',['styles' => self::$styles]);
+        return TemplateEngine::LoadView('scripts',['scripts' => self::$scripts]);
     }
 
     public static function LoadStyles() {
-        return TemplateEngine::LoadView('scripts',['scripts' => self::$scripts]);
+        return TemplateEngine::LoadView('styles',['styles' => static::$styles]);
     }
 } 
