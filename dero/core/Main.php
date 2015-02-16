@@ -20,7 +20,7 @@ class Main
         /*
          * Define error reporting settings
          */
-        define('IS_DEBUG', (bool)getenv('PHP_DEBUG')  === true);
+        define('IS_DEBUG', (bool)getenv('PHP_DEBUG')  === true || (isset($_GET['debug']) && $_GET['debug'] === '1'));
         if( IS_DEBUG )
         {
             ini_set('error_reporting', E_ALL);
@@ -87,12 +87,12 @@ class Main
         $files = glob(ROOT . '/dero/routes/*.php');
         foreach($files as $file)
         {
-            include_once $file;
+            is_readable($file) && include_once $file;
         }
         $files = glob(ROOT . '/app/routes/*.php');
         foreach($files as $file)
         {
-            include_once $file;
+            is_readable($file) && include_once $file;
         }
 
         $fLoadRoute = function(Array $aRoute)
@@ -146,6 +146,7 @@ class Main
                     $mRet = $oController->{$method}($aRoute['Match'][$aRoute['args'][0]]);
                 }
             }
+            Timing::end('controller');
 
             if( is_scalar($mRet) )
             {
@@ -155,7 +156,6 @@ class Main
             {
                 echo json_encode($mRet);
             }
-            Timing::end('controller');
         };
 
         // Attempt to find the requested route

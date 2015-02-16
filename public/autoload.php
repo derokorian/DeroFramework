@@ -1,9 +1,6 @@
 <?php
 
-define('ROOT', dirname(dirname(dirname(__DIR__))));
-define('DS', DIRECTORY_SEPARATOR);
-
-// Load standard framework and app stuff
+// Load standard framework stuff and app
 spl_autoload_register(function ($strClass)
 {
     $strFile = $strClass . '.php';
@@ -44,10 +41,3 @@ spl_autoload_register(function ($strClass)
     }
     return false;
 });
-
-$files = glob(ROOT . '/dero/settings/*.php');
-foreach($files as $file)
-{
-    if( is_readable($file) && is_file($file) )
-        require_once $file;
-}

@@ -18,14 +18,11 @@ class ParameterCollection extends Collection
      */
     public function Add ($aParam)
     {
-        if( !$aParam instanceof Parameter )
-        {
-            throw new \InvalidArgumentException('Only Dero\Data\Parameter may be passed to ' . __METHOD__);
-        }
-        else
-        {
+        if($aParam instanceof Parameter) {
             parent::add($aParam);
-            return $this;
+        } else {
+            throw new \InvalidArgumentException('Only \Dero\Core\Parameter may be added to '. __CLASS__);
         }
+        return $this;
     }
 }

@@ -20,15 +20,18 @@
         timeoutForMediumTests="10"
         timeoutForLargeTests="60"
         stderr="true"
-        strict="false"
         verbose="false">
     <testsuites>
-        <testsuite name="Test Framework Core">
+        <testsuite name="Test Controllers">
+            <directory>./app/controller/</directory>
+        </testsuite>
+        <testsuite name="Test Models">
+            <directory>./app/model/</directory>
+        </testsuite>
+        <testsuite name="Framework_Core">
             <directory>./dero/core/</directory>
         </testsuite>
-    </testsuites>
-    <testsuites>
-        <testsuite name="Test Framework Data">
+        <testsuite name="Framework_Data">
             <directory>./dero/data/</directory>
         </testsuite>
     </testsuites>

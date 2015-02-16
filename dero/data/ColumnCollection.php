@@ -17,7 +17,11 @@ class ColumnCollection extends  Collection
      */
     public function Add (Column $aCol)
     {
-        parent::add($aCol);
+        if($aCol instanceof Column) {
+            parent::add($aCol);
+        } else {
+            throw new \InvalidArgumentException('Only \Dero\Core\Column may be added to '. __CLASS__);
+        }
         return $this;
     }
 } 
