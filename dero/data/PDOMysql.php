@@ -1,13 +1,19 @@
 <?php
 
 namespace Dero\Data;
+
+use PDO;
+use PDOException;
+use Exception;
+use InvalidArgumentException;
+use UnexpectedValueException;
 use Dero\Core\Config;
 
 /**
  * PDO wrapper for MySQL
  * @author Ryan Pallas
  * @package DeroFramework
- * @namespace dero\Data
+ * @namespace Dero\Data
  * @see DataInterface
  */
 class PDOMysql implements DataInterface
@@ -22,19 +28,19 @@ class PDOMysql implements DataInterface
     public function __construct($Instance = NULL)
     {
         if( is_null($Instance) || !is_string($Instance) )
-            throw new \InvalidArgumentException(__CLASS__ . ' requires an instance');
+            throw new InvalidArgumentException(__CLASS__ . ' requires an instance');
         else
             $this->sInstance = $Instance;
 
         if( !extension_loaded('pdo_mysql') )
-            throw new \Exception('PDO_MySQL is not loaded - please check the server\'s configuration');
+            throw new Exception('PDO_MySQL is not loaded - please check the server\'s configuration');
     }
 
     /**
      * Opens a connection for a query
      * @param bool $bIsRead
-     * @returns \PDO
-     * @throws \UnexpectedValueException
+     * @returns PDO
+     * @throws UnexpectedValueException
      * @throws DataException
      */
     protected function OpenConnection($bIsRead)
@@ -76,7 +82,7 @@ class PDOMysql implements DataInterface
         }
         else
         {
-            throw new \UnexpectedValueException('Database connection information not properly defined');
+            throw new UnexpectedValueException('Database connection information not properly defined');
         }
         if( is_null($sType) )
         {
@@ -87,10 +93,10 @@ class PDOMysql implements DataInterface
             $aOpts['Port'] = Config::GetValue('database', $this->sInstance,'port') ?: 3306;
             if( in_array(null, $aOpts) )
             {
-                throw new \UnexpectedValueException('Database connection information not properly defined');
+                throw new UnexpectedValueException('Database connection information not properly defined');
             }
             try {
-                $this->oInstance = new \PDO(
+                $this->oInstance = new PDO(
                     sprintf(
                         'mysql:dbname=%s;host=%s;port=%d',
                         $aOpts['Name'],
@@ -101,7 +107,7 @@ class PDOMysql implements DataInterface
                     $aOpts['Pass']
                 );
                 return $this->oInstance;
-            } catch (\PDOException $e) {
+            } catch (PDOException $e) {
                 throw new DataException("Unable to open database connection\n" . var_export($aOpts, true), 0, $e);
             }
         }
@@ -114,10 +120,10 @@ class PDOMysql implements DataInterface
             $aOpts['Port'] = Config::GetValue('database', $this->sInstance, $sType, 'port') ?: 3306;
             if( in_array(null, $aOpts) )
             {
-                throw new \UnexpectedValueException('Database connection information not properly defined');
+                throw new UnexpectedValueException('Database connection information not properly defined');
             }
             try {
-                $this->oInstance[$sType] = new \PDO(
+                $this->oInstance[$sType] = new PDO(
                     sprintf(
                         'mysql:dbname=%s;host=%s;port=%d',
                         $aOpts['Name'],
@@ -128,7 +134,7 @@ class PDOMysql implements DataInterface
                     $aOpts['Pass']
                 );
                 return $this->oInstance[$sType];
-            } catch (\PDOException $e) {
+            } catch (PDOException $e) {
                 throw new DataException("Unable to open database connection\n" . var_export($aOpts, true), 0, $e);
             }
         }
@@ -142,6 +148,7 @@ class PDOMysql implements DataInterface
      */
     public function Prepare($Query)
     {
+        $Query = preg_replace(["/[\r\n]+/",'/\s+/'], " ", $Query);
         static::LogQuery($Query);
         $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
         try
@@ -155,7 +162,7 @@ class PDOMysql implements DataInterface
             }
             return $this;
         }
-        catch (\Exception $e)
+        catch (Exception $e)
         {
             throw new DataException('Error preparing query in '. __CLASS__ . '::' . __FUNCTION__, 0, $e);
         }
@@ -170,6 +177,7 @@ class PDOMysql implements DataInterface
      */
     public function Query($Query)
     {
+        $Query = preg_replace(["/[\r\n]+/",'/\s+/'], " ", $Query);
         static::LogQuery($Query);
         $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
         try
@@ -178,18 +186,18 @@ class PDOMysql implements DataInterface
             if( $this->oPDOStatement === FALSE )
             {
                 $e = $oCon->errorInfo();
-                throw new DataException('Error preparing query in '. __CLASS__ . '::'
+                throw new DataException('Error running query in '. __CLASS__ . '::'
                     . __FUNCTION__ . '(' . $e[2] . ')');
             }
             return $this;
         }
-        catch (\Exception $e)
+        catch (Exception $e)
         {
-            throw new DataException('Error preparing query in '. __CLASS__ . '::' . __FUNCTION__, 0, $e);
+            throw new DataException('Error running query in '. __CLASS__ . '::' . __FUNCTION__, 0, $e);
         }
     }
 
-    public static function LogQuery($strQuery)
+    protected static function LogQuery($strQuery)
     {
         static $i = 0;
         if( !IS_DEBUG )
@@ -205,7 +213,7 @@ class PDOMysql implements DataInterface
         }
         else
         {
-            header(sprintf('x-query(%d): %s', $i++, $strQuery));
+            header(sprintf('X-Query(%d): %s', $i++, $strQuery));
         }
     }
 
@@ -241,7 +249,7 @@ class PDOMysql implements DataInterface
         try {
             $this->oPDOStatement->bindValue($Param->Name, $Param->Value, $Param->Type);
             return $this;
-        } catch(\Exception $e) {
+        } catch(Exception $e) {
             throw new DataException('unable to bind parameter '. $e->getMessage());
         }
     }
@@ -256,9 +264,16 @@ class PDOMysql implements DataInterface
     {
         if(! $this->oPDOStatement ) return $this;
         try {
-            $this->oPDOStatement->execute();
+            if (!$this->oPDOStatement->execute()) {
+                $aErr = $this->oPDOStatement->errorInfo();
+                switch ($this->oPDOStatement->errorCode()) {
+                    case 23000:
+                        throw new DataException($aErr[2], $aErr[1]);
+                        break;
+                }
+            }
             return $this;
-        } catch( \PDOException $e) {
+        } catch( PDOException $e) {
             throw new DataException('Error executing query in '. __CLASS__ .'::'. __FUNCTION__, 0, $e);
         }
     }
@@ -271,7 +286,7 @@ class PDOMysql implements DataInterface
     public function Get()
     {
         if(! $this->oPDOStatement ) return FALSE;
-        return $this->oPDOStatement->fetch(\PDO::FETCH_OBJ);
+        return $this->oPDOStatement->fetch(PDO::FETCH_OBJ);
     }
 
     /**
@@ -282,7 +297,7 @@ class PDOMysql implements DataInterface
     public function GetAll()
     {
         if(! $this->oPDOStatement ) return FALSE;
-        return $this->oPDOStatement->fetchAll(\PDO::FETCH_OBJ);
+        return $this->oPDOStatement->fetchAll(PDO::FETCH_OBJ);
     }
 
     /**
@@ -293,7 +308,7 @@ class PDOMysql implements DataInterface
     public function GetScalar()
     {
         if(! $this->oPDOStatement ) return FALSE;
-        return $this->oPDOStatement->fetch(\PDO::FETCH_NUM)[0];
+        return $this->oPDOStatement->fetch(PDO::FETCH_NUM)[0];
     }
 }
 

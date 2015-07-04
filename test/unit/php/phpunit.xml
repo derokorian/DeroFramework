@@ -1,6 +1,6 @@
 <phpunit
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/4.3/phpunit.xsd"
+        xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/4.5/phpunit.xsd"
         backupGlobals="true"
         backupStaticAttributes="false"
         bootstrap="bootstrap.php"
@@ -19,16 +19,19 @@
         timeoutForSmallTests="1"
         timeoutForMediumTests="10"
         timeoutForLargeTests="60"
-        stderr="true"
-        strict="false"
+        stderr="false"
         verbose="false">
     <testsuites>
-        <testsuite name="Test Framework Core">
+        <testsuite name="Test Controllers">
+            <directory>./app/controller/</directory>
+        </testsuite>
+        <testsuite name="Test Models">
+            <directory>./app/model/</directory>
+        </testsuite>
+        <testsuite name="Framework_Core">
             <directory>./dero/core/</directory>
         </testsuite>
-    </testsuites>
-    <testsuites>
-        <testsuite name="Test Framework Data">
+        <testsuite name="Framework_Data">
             <directory>./dero/data/</directory>
         </testsuite>
     </testsuites>

@@ -9,24 +9,19 @@ use Dero\Core\Retval;
  */
 abstract class BaseModel
 {
-    /**
-     * @var DataInterface
-     */
+    /** @var DataInterface */
     protected $DB;
-    /**
-     * @var string
-     */
+
+    /** @var string */
     protected static $TABLE_NAME = '';
-    /**
-     * @var array
-     */
+
+    /** @var array */
     protected static $COLUMNS = [];
 
-    /**
-     * @const Used in queries that do a group concatenation
-     */
-    const CONCAT_SEPARATOR = '--|--';
+    /** @const Used in queries that do a group concatenation */
+    const CONCAT_SEPARATOR = 0x1D;
 
+    const UniqueConstraintViolation = 23000;
 
     /**
      * Initializes a instance of BaseModel
@@ -38,85 +33,150 @@ abstract class BaseModel
     }
 
     /**
+     * Validates given array of values against the table definition
      * @param array $aVars
      * @return Retval
+     * @throw RuntimeException
      */
     public function validate(Array $aVars)
     {
-        $oRetVal = new Retval();
+        $oRetval = new Retval();
         foreach( static::$COLUMNS as $strCol => $aCol )
         {
             if( isset($aCol['required']) &&
                 $aCol['required'] === true &&
                 !isset($aVars[$strCol]) )
             {
-                $oRetVal->AddError($strCol . ' is required.');
+                $oRetval->AddError($strCol . ' is required.');
             }
 
             if( isset($aCol['col_length']) &&
                 isset($aVars[$strCol]) &&
                 strlen($aVars[$strCol]) > $aCol['col_length'] )
             {
-                $oRetVal->AddError($strCol . ' is longer than max length (' . $aCol['col_length'] . ')');
+                $oRetval->AddError($strCol . ' is longer than max length (' . $aCol['col_length'] . ').');
+            }
+
+            if( isset($aCol[COL_TYPE]) &&
+                isset($aVars[$strCol]) )
+            {
+                switch($aCol[COL_TYPE])
+                {
+                    case COL_TYPE_INTEGER:
+                        if( !is_numeric($aVars[$strCol]) ||
+                            (string)(int)$aVars[$strCol] !== (string)$aVars[$strCol] )
+                        {
+                            $oRetval->AddError($strCol . ' must be a valid integer.');
+                        }
+                        break;
+                    case COL_TYPE_BOOLEAN:
+                        if( !is_bool($aVars) &&
+                            (string)(bool)$aVars[$strCol] !== (string)$aVars[$strCol] )
+                        {
+                            $oRetval->AddError($strCol . ' must be a valid boolean.');
+                        }
+                        break;
+                    case COL_TYPE_DECIMAL:
+                        if( !is_numeric($aVars[$strCol]) ||
+                            !preg_match('/^[+\-]?(?:\d+(?:\.\d*)?|\.\d+)$/', trim($aVars[$strCol]) ) )
+                        {
+                            $oRetval->AddError($strCol . ' must be a valid decimal.');
+                        }
+                        break;
+                    case COL_TYPE_FIXED_STRING:
+                        if( !isset($aCol['col_length']) || !is_int($aCol['col_length']) )
+                        {
+                            throw new \RuntimeException('COL_TYPE_FIXED_STRING found with no defined or invalid col_length!');
+                        }
+                        elseif( strlen($aVars[$strCol]) !== $aCol['col_length'] )
+                        {
+                            $oRetval->AddError($strCol . ' must be fixed length (' . $aCol['col_length'] . ').');
+                        }
+                        break;
+                }
             }
 
             if( isset($aCol['validation_pattern']) &&
                 isset($aVars[$strCol]) &&
                 !preg_match($aCol['validation_pattern'],$aVars[$strCol]) )
             {
-                $oRetVal->AddError($strCol . ' did not validate');
+                $oRetval->AddError($strCol . ' did not validate.');
             }
         }
-        return $oRetVal;
+        return $oRetval;
     }
 
     /**
      * Returns either WHERE or AND for sql
      * First call after resetting returns WHERE, the rest returns AND
-     * @param bool $reset True to return where on next call
+     * @param bool $bReset True to return where on next call
      * @return void|string
      */
-    private function where($reset = FALSE)
+    private function where($bReset = FALSE)
     {
-        static $Where;
-        if( $reset )
+        static $bWhere;
+        if( $bReset )
         {
-            $Where = FALSE;
+            $bWhere = FALSE;
             return null;
         }
-        if( $Where === FALSE )
+        if( $bWhere === FALSE )
         {
-            $Where = TRUE;
+            $bWhere = TRUE;
             return 'WHERE ';
         }
         return 'AND ';
     }
 
+    /**
+     * Generates an INSERT INTO...VALUES... statement based on table
+     *   definition and given values to insert
+     *   Always sets created and modified to current date and time
+     * @param ParameterCollection $oParams
+     * @param array $aOpts
+     * @return string
+     */
     protected function GenerateInsert(ParameterCollection &$oParams, Array $aOpts)
     {
-        $strCols = '(';
-        $strVals = '(';
+        $aCols = [];
+        $aVals = [];
         foreach( static::$COLUMNS as $name => $def)
         {
-            if( isset($aOpts[$name]) )
+            if( strtolower($name) == 'created' || strtolower($name) == 'modified' )
             {
-                $type = $this->getParamTypeFromColType($aOpts[$name], $def);
-                $oParams->Add(new Parameter($name, $aOpts[$name], $type));
-                $strCols .= sprintf('`%s`,', $name);
-                $strVals .= sprintf(':%s,', $name);
+                $aCols[] = sprintf('`%s`', $name);
+                $aVals[] = 'NOW()';
             }
-            elseif( strtolower($name) == 'created' || strtolower($name) == 'modified' )
+            elseif( isset($aOpts[$name]) )
             {
-                $strCols .= sprintf('`%s`,', $name);
-                $strVals .= 'NOW(),';
+                $aCols[] = sprintf('`%s`', $name);
+                $oParams->Add(new Parameter(
+                    $name,
+                    $aOpts[$name],
+                    $this->getParamTypeFromColType($aOpts[$name], $def)
+                ));
+                $aVals[] = ':'.$name;
             }
         }
-        return substr($strCols, 0, -1) . ') VALUES ' . substr($strVals, 0, -1) . ')';
+        return sprintf(
+            'INSERT INTO `%s` (%s) VALUES (%s)',
+            static::$TABLE_NAME,
+            implode(',', $aCols),
+            implode(',',$aVals)
+        );
     }
 
+    /**
+     * Generates an update statement for the table definition and given options
+     *   Adds a where clause on the primary key when provided
+     *   Does not allow changing created datetime, and sets modified to current datetime
+     * @param ParameterCollection $oParams
+     * @param array $aOpts
+     * @return string
+     */
     protected  function GenerateUpdate(ParameterCollection &$oParams, Array $aOpts)
     {
-        $strRet = 'SET ';
+        $strRet = sprintf('UPDATE `%s` SET ', static::$TABLE_NAME);
         $strIdField = '';
         $cIdType = null;
         foreach( static::$COLUMNS as $name => $def)
@@ -124,6 +184,10 @@ abstract class BaseModel
             if( strtolower($name) == 'created' )
             {
                 continue;
+            }
+            elseif( strtolower($name) == 'modified' )
+            {
+                $strRet .= '`modified` = NOW(),';
             }
             elseif( isset($def[KEY_TYPE]) && $def[KEY_TYPE] === KEY_TYPE_PRIMARY )
             {
@@ -136,22 +200,19 @@ abstract class BaseModel
                 $oParams->Add(new Parameter($name, $aOpts[$name], $type));
                 $strRet .= sprintf("`%s` = :%s,", $name, $name);
             }
-            elseif( strtolower($name) == 'modified' )
-            {
-                $strRet .= sprintf('`%s` = NOW(),', $name);
-            }
         }
         $strRet = substr($strRet, 0, -1) . ' ';
         if( strlen($strIdField) > 0 && isset($aOpts[$strIdField]) )
         {
             $oParams->Add(new Parameter($strIdField, $aOpts[$strIdField], $cIdType));
-            $strRet .= sprintf("WHERE `%s` = :%s", $strIdField, $strIdField);
+            $strRet .= sprintf("WHERE `%s` = :%s ", $strIdField, $strIdField);
         }
         return $strRet;
     }
 
 
     /**
+     * Generates a where clause for a sql statement
      * @param ParameterCollection $oParams
      * @param array $aOpts
      * @param string $strColPrefix
@@ -187,30 +248,48 @@ abstract class BaseModel
             }
         }
 
-        if( isset($aOpts['order_by']) &&
-            ((strpos($aOpts['order_by'], ' ') !== FALSE &&
-              isset(static::$COLUMNS[substr($aOpts['order_by'], 0, strpos($aOpts['order_by'], ' '))])) ||
-            isset(static::$COLUMNS[$aOpts['order_by']])) )
-        {
-            $sql .= 'ORDER BY ' . $strColPrefix . $aOpts['order_by'] . ' ';
+        if (isset($aOpts['order_by'])) {
+            $sOrderBy = '';
+            if (!is_array($aOpts['order_by'])) {
+                $aOpts['order_by'] = [$aOpts['order_by']];
+            }
+            foreach ($aOpts['order_by'] as $sOrder) {
+                $sColumn = $sDirection = null;
+                if (strpos($sOrder, ' ') !== false)
+                {
+                    list($sColumn, $sDirection) = explode(' ', $sOrder, 2);
+                }
+                else
+                {
+                    $sColumn = $sOrder;
+                }
+                $sDirection = strtoupper($sDirection) ?: 'ASC';
+                if (isset(static::$COLUMNS[$sColumn]) &&
+                    ($sDirection === 'ASC' || $sDirection === 'DESC')) {
+                    strlen($sOrderBy) == 0 ?: $sOrderBy .= ', ';
+                    $sOrderBy .= "$sColumn $sDirection";
+                }
+            }
+            strlen($sOrderBy) == 0 ?: $sql .= "ORDER BY $sOrderBy ";
         }
 
         if( isset($aOpts['rows']) )
         {
             $sql .= 'LIMIT :rows ';
-            $oParams->Add(new Parameter('rows', $aOpts['rows'], DB_PARAM_INT));
+            $oParams->Add(new Parameter('rows', (int)$aOpts['rows'], DB_PARAM_INT));
         }
 
         if( isset($aOpts['skip']) )
         {
             $sql .= 'OFFSET :skip ';
-            $oParams->Add(new Parameter('skip', $aOpts['skip'], DB_PARAM_INT));
+            $oParams->Add(new Parameter('skip', (int)$aOpts['skip'], DB_PARAM_INT));
         }
 
         return $sql;
     }
 
     /**
+     * Gets a DB_PARAM_* constant based on the COL_TYPE
      * @param $val
      * @param $def
      * @return null|string
@@ -304,7 +383,7 @@ abstract class BaseModel
                     else
                     {
                         throw new \UnexpectedValueException(
-                            'Bad column definition. COL_TYPE_STRING requires col_length be set.');
+                            'Bad column definition. COL_TYPE_FIXED_STRING requires col_length be set.');
                     }
                     break;
             }
@@ -380,14 +459,14 @@ abstract class BaseModel
      */
     public function CreateTable()
     {
-        $oRetVal = new Retval();
+        $oRetval = new Retval();
         $strSql = $this->GenerateCreateTable();
         try {
-            $oRetVal->Set($this->DB->Query($strSql));
+            $oRetval->Set($this->DB->Query($strSql));
         } catch (DataException $e) {
-            $oRetVal->AddError('Unable to query database', $e);
+            $oRetval->AddError('Unable to query database', $e);
         }
-        return $oRetVal;
+        return $oRetval;
     }
 
     /**
@@ -397,37 +476,37 @@ abstract class BaseModel
      */
     public function VerifyTableDefinition()
     {
-        $oRetVal = new Retval();
+        $oRetval = new Retval();
         $strSql = sprintf("SHOW TABLES LIKE '%s'", static::$TABLE_NAME);
         try {
-            $oRetVal->Set(
+            $oRetval->Set(
                 $this->DB
                     ->Query($strSql)
                     ->GetAll()
             );
         } catch (DataException $e) {
-            $oRetVal->AddError('Unable to query database', $e);
-            return $oRetVal;
+            $oRetval->AddError('Unable to query database', $e);
+            return $oRetval;
         }
-        if( count($oRetVal->Get()) == 0 )
+        if( count($oRetval->Get()) == 0 )
         {
-            $oRetVal = $this->CreateTable();
-            return $oRetVal;
+            $oRetval = $this->CreateTable();
+            return $oRetval;
         }
         $strSql = sprintf('DESCRIBE `%s`', static::$TABLE_NAME);
         try {
-            $oRetVal->Set(
+            $oRetval->Set(
                 $this->DB
                     ->Query($strSql)
                     ->GetAll()
             );
         } catch (DataException $e) {
-            $oRetVal->AddError('Unable to query database', $e);
-            return $oRetVal;
+            $oRetval->AddError('Unable to query database', $e);
+            return $oRetval;
         }
         $aRet = [];
         $strUpdate = 'ALTER TABLE `' . static::$TABLE_NAME . '` ';
-        $aTableCols = array_map(function($el) { return (array)$el; }, $oRetVal->Get());
+        $aTableCols = array_map(function($el) { return (array)$el; }, $oRetval->Get());
         $aTableCols = array_combine(
             array_column($aTableCols, 'Field'),
             array_values($aTableCols)
@@ -723,17 +802,17 @@ abstract class BaseModel
         {
             try
             {
-                $oRetVal->Set('Updating ' . static::$TABLE_NAME);
+                $oRetval->Set('Updating ' . static::$TABLE_NAME);
                 $this->DB->Query($strUpdate);
-                $oRetVal->Set(array_merge($aRet, ['message' => static::$TABLE_NAME . ' has been updated']));
+                $oRetval->Set(array_merge($aRet, ['message' => static::$TABLE_NAME . ' has been updated']));
             } catch (\Exception $e) {
-                $oRetVal->AddError('Error updating table ' . static::$TABLE_NAME, $e);
+                $oRetval->AddError('Error updating table ' . static::$TABLE_NAME, $e);
             }
         }
         else
         {
-            $oRetVal->Set(static::$TABLE_NAME . ' is up to date');
+            $oRetval->Set(static::$TABLE_NAME . ' is up to date');
         }
-        return $oRetVal;
+        return $oRetval;
     }
 }

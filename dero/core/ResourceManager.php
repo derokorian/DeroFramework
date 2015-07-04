@@ -2,99 +2,122 @@
 
 namespace Dero\Core;
 
-
+/**
+ * Class ResourceManager
+ * @package DeroFramework
+ * @namespace Dero\Core
+ * @since 2014-02-09
+ */
 class ResourceManager {
     private static $scripts = [];
     private static $styles = [];
 
-    private static $KNOWN_SCRIPTS = [
-        [
-            'name' => 'jquery',
-            'src' => 'jquery-1.11.0.min.js',
-            'dep' => []
-        ],
-        [
-            'name' => 'angular',
-            'src' => '//ajax.googleapis.com/ajax/libs/angularjs/1.2.14/angular.min.js',
-            'dep' => ['jquery']
-        ]
-    ];
+    private static $KNOWN_SCRIPTS = [];
 
-    private static function genScriptSrc($strSrc) {
+    private static $KNOWN_STYLES = [];
+
+    private static function genSrc($strSrc, $strBaseUrl) {
         if( substr($strSrc, 0, 2) == '//' ) {
             return $strSrc;
         }
-        return Config::GetValue('website', 'script_url') . $strSrc;
+        return $strBaseUrl . $strSrc;
     }
 
-    private static function genStyleSrc($strSrc) {
-        if( substr($strSrc, 0, 2) == '//' ) {
-            return $strSrc;
-        }
-        return Config::GetValue('website', 'style_url') . $strSrc;
-    }
-
-    public static function AddScript($fileName) {
-        if( in_array($fileName, array_column(static::$KNOWN_SCRIPTS, 'name')) )
+    private static function addResource($filename, $ext, $path, $url, $known, &$target)
+    {
+        // Check if requesting a configured resource
+        if( ($k = array_search($filename, array_column($known, 'name'))) !== false )
         {
-            foreach( static::$KNOWN_SCRIPTS as $script )
+            // Check if we already added it
+            if( in_array(self::genSrc($known[$k]['src'], $url), $target) )
             {
-                if( $script['name'] == $fileName )
+                return;
+            }
+            // Add any defined dependencies
+            if( count($known[$k]['dep']) > 0 )
+            {
+                foreach( $known[$k]['dep'] as $dep )
                 {
-                    if( in_array(self::genScriptSrc($script['src']), self::$scripts) )
-                    {
-                        break;
-                    }
-                    if( count($script['dep']) > 0 )
-                    {
-                        foreach( $script['dep'] as $dep )
-                        {
-                            static::AddScript($dep);
-                        }
-                    }
-                    static::$scripts[] = self::genScriptSrc($script['src']);
-                    break;
+                    static::addResource($dep, $ext, $path, $url, $known, $target);
                 }
             }
+            $target[] = self::genSrc($known[$k]['src'], $url);
         }
         else
         {
-            if( substr($fileName, -3, 3) != '.js')
+            // if no extension then add it
+            $l = strlen($ext);
+            if( substr($filename, -$l, $l) != $ext)
             {
-                $fileName .= '.js';
+                $filename .= $ext;
             }
-            $path = ROOT . '/public/scripts/' . $fileName;
-            if( is_readable($path) && !in_array(self::genScriptSrc($fileName),self::$scripts) )
+
+            // define a path where the file should exist, and check if its there
+            $path = $path . $filename;
+            if( is_readable($path) && !in_array(self::genSrc($filename, $url), $target) )
             {
-                self::$scripts[] = self::genScriptSrc($fileName);
+                $target[] = self::genSrc($filename, $url);
             }
             else
             {
-                throw new \OutOfBoundsException('Unable to read script ' . $fileName .'<br>'.$path);
+                throw new \OutOfBoundsException('Unable to read resource ' . $filename);
             }
         }
     }
 
-    public static function AddStyle($fileName) {
-        if( substr($fileName, -4, 4) != '.css' )
+    /**
+     * Add a javascript file as a necessary resource
+     * @param $filename
+     */
+    public static function AddScript($filename) {
+        // Load scripts from configuration
+        if(count(static::$KNOWN_SCRIPTS) == 0)
         {
-            $fileName .= '.css';
+            static::$KNOWN_SCRIPTS = Config::GetValue('resources','scripts');
         }
-        $path = ROOT . '/public/styles/' . $fileName;
-        if( is_readable($path) && !in_array(self::genStyleSrc($fileName), self::$styles) )
-        {
-            self::$styles[] = self::genStyleSrc($fileName);
-        }
-        else
-        {
-            throw new \OutOfBoundsException('Unable to read style ' . $fileName);
-        }
+
+        self::addResource(
+            $filename,
+            '.js',
+            ROOT.'/public/scripts/',
+            Config::GetValue('website','script_url'),
+            static::$KNOWN_SCRIPTS,
+            self::$scripts
+        );
     }
 
+    /**
+     * Add a css file as a necessary resource
+     * @param $filename
+     */
+    public static function AddStyle($filename) {
+        if(count(static::$KNOWN_STYLES) == 0)
+        {
+            static::$KNOWN_STYLES = Config::GetValue('resources','styles');
+        }
+
+        self::addResource(
+            $filename,
+            '.css',
+            ROOT.'/public/styles/',
+            Config::GetValue('website','style_url'),
+            self::$KNOWN_STYLES,
+            self::$styles
+        );
+    }
+
+    /**
+     * Loads the requested javascript files
+     * @return mixed
+     */
     public static function LoadScripts() {
         return TemplateEngine::LoadView('scripts',['scripts' => self::$scripts]);
     }
 
+    /**
+     * Loads the requested css files
+     * @return mixed
+     */
     public static function LoadStyles() {
         return TemplateEngine::LoadView('styles',['styles' => static::$styles]);
     }

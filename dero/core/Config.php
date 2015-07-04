@@ -12,6 +12,7 @@ class Config
 
     /**
      * Loads the configuration if not already initialized
+     * @param file
      */
     private static function LoadConfig($file)
     {
@@ -24,6 +25,18 @@ class Config
                     json_decode(
                         strip_json_comments(
                             file_get_contents(ROOT . DS . 'dero' . DS . 'config' . DS . $file . '.json')
+                        ),
+                        true
+                    )
+                );
+            }
+            if( is_readable(ROOT . DS . 'app' . DS . 'config' . DS . $file . '.json') )
+            {
+                $config = self::MergeConfig(
+                    $config,
+                    json_decode(
+                        strip_json_comments(
+                            file_get_contents(ROOT . DS . 'app' . DS . 'config' . DS . $file . '.json')
                         ),
                         true
                     )
@@ -79,7 +92,7 @@ class Config
      * Gets a configuration value
      * @param string The name(s) of the configuration parameter to get
      * @example config::GetValue('database','default','engine')
-     * @return NULL|string value of the configuration or null if not found
+     * @return mixed value of the configuration or null if not found
      */
     public static function GetValue()
     {
@@ -91,11 +104,11 @@ class Config
                 if( isset($last[$arg]) )
                     $last = $last[$arg];
                 else
-                    return NULL;
+                    return null;
             }
             return $last;
         }
-        return 0;
+        return null;
     }
 }
 

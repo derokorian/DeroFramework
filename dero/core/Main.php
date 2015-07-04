@@ -20,7 +20,7 @@ class Main
         /*
          * Define error reporting settings
          */
-        define('IS_DEBUG', (bool)getenv('PHP_DEBUG')  === true);
+        define('IS_DEBUG', (bool)getenv('PHP_DEBUG')  === true || (isset($_GET['debug']) && $_GET['debug'] === '1'));
         if( IS_DEBUG )
         {
             ini_set('error_reporting', E_ALL);
@@ -36,9 +36,9 @@ class Main
         }
 
         if( isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' &&
-            isset($_SERVER["CONTENT_TYPE"]) && stripos($_SERVER["CONTENT_TYPE"], "application/json") === 0)
+            isset($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'application/json') === 0)
         {
-            $_POST = json_decode(file_get_contents("php://input"), true);
+            $_POST = json_decode(file_get_contents('php://input'), true);
         }
 
         // Load settings
@@ -87,12 +87,12 @@ class Main
         $files = glob(ROOT . '/dero/routes/*.php');
         foreach($files as $file)
         {
-            include_once $file;
+            is_readable($file) && include_once $file;
         }
         $files = glob(ROOT . '/app/routes/*.php');
         foreach($files as $file)
         {
-            include_once $file;
+            is_readable($file) && include_once $file;
         }
 
         $fLoadRoute = function(Array $aRoute)
@@ -146,6 +146,7 @@ class Main
                     $mRet = $oController->{$method}($aRoute['Match'][$aRoute['args'][0]]);
                 }
             }
+            Timing::end('controller');
 
             if( is_scalar($mRet) )
             {
@@ -153,15 +154,18 @@ class Main
             }
             elseif( !empty($mRet) )
             {
-                echo json_encode($mRet);
+                $mRet = json_encode($mRet);
+                header('Content-Type: application/json');
+                header('Content-Length: '. strlen($mRet));
+                echo $mRet;
             }
-            Timing::end('controller');
         };
 
         // Attempt to find the requested route
         foreach($aRoutes as $aRoute)
         {
-            if( preg_match($aRoute['pattern'], $strURI, $match) )
+            if( !empty($aRoute['pattern'])
+                && preg_match($aRoute['pattern'], $strURI, $match) )
             {
                 $bRouteFound = true;
                 $aRoute['Request'] = $strURI;
