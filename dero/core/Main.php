@@ -146,18 +146,6 @@ class Main
 
     protected static function loadRoute(array $aRoute)
     {
-        if (isset($aRoute['permissions'])) {
-            $oAuth = new \Authorize();
-            if ($oAuth->canUser($aRoute['permissions'][0], $aRoute['permissions'][1]) !== true) {
-                $sRet = json_encode(['error' => 'User not logged in or not authorized to use this service']);
-                header($_SERVER['SERVER_PROTOCOL'] . ' 401 Unauthorized', true, 401);
-                header('Content-Type: application/json');
-                header('Content-Length: '. strlen($sRet));
-                echo $sRet;
-                return;
-            }
-        }
-
         if( empty($aRoute['dependencies']) )
             $oController = new $aRoute['controller']();
         else
