@@ -17,10 +17,8 @@ class Timing
 
     public static function end($strTime)
     {
-        if( isset(self::$aTimes[$strTime]) )
-        {
+        if (isset(self::$aTimes[$strTime]))
             self::$aTimes[$strTime] = round(microtime(true) * 1000 - self::$aTimes[$strTime], 2);
-        }
     }
 
     public static function getTimings()
@@ -30,17 +28,14 @@ class Timing
 
     public static function setHeaderTimings()
     {
-        foreach(self::$aTimes as $strKey => $fTiming)
-        {
-            header(sprintf('X-%s-Timing: %0.4fms', ucfirst($strKey), $fTiming));
-        }
+        foreach (self::$aTimes as $strKey => $fTiming)
+            if (!headers_sent())
+                header(sprintf('X-%s-Timing: %0.4fms', ucfirst($strKey), $fTiming));
     }
 
     public static function printTimings()
     {
-        foreach(self::$aTimes as $strKey => $fTiming)
-        {
+        foreach (self::$aTimes as $strKey => $fTiming)
             printf("%s timing: %0.4fms\n", $strKey, $fTiming);
-        }
     }
 }

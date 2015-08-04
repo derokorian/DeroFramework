@@ -10,51 +10,33 @@ class Config
 {
     private static $Config = [];
 
+    const PATHS = [
+        ROOT . DS . 'dero' . DS . 'config' . DS,
+        ROOT . DS . 'app' . DS . 'config' . DS,
+        ROOT . DS . 'config' . DS
+    ];
+
     /**
      * Loads the configuration if not already initialized
-     * @param file
+     * @param $sFile
      */
-    private static function LoadConfig($file)
+    private static function LoadConfig($sFile)
     {
-        if( !array_key_exists($file, self::$Config) ) {
-            $config = [];
-            if( is_readable(ROOT . DS . 'dero' . DS . 'config' . DS . $file . '.json') )
-            {
-                $config = self::MergeConfig(
-                    $config,
-                    json_decode(
-                        strip_json_comments(
-                            file_get_contents(ROOT . DS . 'dero' . DS . 'config' . DS . $file . '.json')
-                        ),
-                        true
-                    )
-                );
+        if( !array_key_exists($sFile, self::$Config) ) {
+            $aConfig = [];
+            $sFilename = $sFile . '.json';
+            foreach(static::PATHS as $sPath) {
+                if( file_exists($sPath . $sFilename) && is_readable($sPath . $sFilename) ) {
+                    $aConfig = self::MergeConfig(
+                        $aConfig,
+                        jsonc_decode(
+                            file_get_contents($sPath . $sFilename),
+                            true
+                        )
+                    );
+                }
             }
-            if( is_readable(ROOT . DS . 'app' . DS . 'config' . DS . $file . '.json') )
-            {
-                $config = self::MergeConfig(
-                    $config,
-                    json_decode(
-                        strip_json_comments(
-                            file_get_contents(ROOT . DS . 'app' . DS . 'config' . DS . $file . '.json')
-                        ),
-                        true
-                    )
-                );
-            }
-            if( is_readable(ROOT . DS . 'config' . DS . $file . '.json') )
-            {
-                $config = self::MergeConfig(
-                    $config,
-                    json_decode(
-                        strip_json_comments(
-                            file_get_contents(ROOT . DS . 'config' . DS . $file . '.json')
-                        ),
-                    true
-                    )
-                );
-            }
-            self::$Config[$file] = $config;
+            self::$Config[$sFile] = $aConfig;
         }
     }
 
@@ -66,21 +48,20 @@ class Config
     private static function MergeConfig(Array $aConfig, Array $aVal)
     {
         $aReturn = [];
-        foreach( $aVal as $k => $v )
-        {
-            if( isset($aConfig[$k]) && is_array($aConfig[$k]) && is_array($v) )
-            {
+
+        foreach ($aVal as $k => $v) {
+            if (isset($aConfig[$k]) && is_array($aConfig[$k]) && is_array($v)) {
                 $aReturn[$k] = self::MergeConfig($aConfig[$k], $v);
-            }
-            else
-            {
+            } elseif (is_numeric($k)) {
+                $aReturn[] = $v;
+            } else {
                 $aReturn[$k] = $v;
             }
         }
-        foreach( $aConfig as $k => $v )
-        {
-            if( !isset($aReturn[$k]) )
-            {
+        foreach ($aConfig as $k => $v) {
+            if (is_numeric($k) && !in_array($v, $aReturn)) {
+                $aReturn[] = $v;
+            } elseif (!isset($aReturn[$k])) {
                 $aReturn[$k] = $v;
             }
         }
@@ -90,18 +71,17 @@ class Config
 
     /**
      * Gets a configuration value
-     * @param string The name(s) of the configuration parameter to get
+     * @param $args array[string] The name(s) of the configuration parameter to get
      * @example config::GetValue('database','default','engine')
      * @return mixed value of the configuration or null if not found
      */
-    public static function GetValue()
+    public static function GetValue(...$args)
     {
-        if( func_num_args() > 0 ) {
-            $args = func_get_args();
+        if (func_num_args() > 0) {
             self::LoadConfig($args[0]);
             $last = self::$Config;
-            foreach( $args as $arg ) {
-                if( isset($last[$arg]) )
+            foreach ($args as $arg) {
+                if (isset($last[$arg]))
                     $last = $last[$arg];
                 else
                     return null;
@@ -112,10 +92,18 @@ class Config
     }
 }
 
-function strip_json_comments($strJson) {
+/**
+ * Decodes JSON with extended support for comments
+ * @param $strJson
+ * @param bool $bAssoc
+ * @param int $iDepth
+ * @param int $iOptions
+ * @return mixed
+ */
+function jsonc_decode($strJson, $bAssoc = false, $iDepth = 512, $iOptions = 0) {
     $strJson = preg_replace('@/\*.*?\*/@m', null, $strJson);
     $strJson = preg_replace('@^\s*(//|#).*$@', null, $strJson);
-    return $strJson;
+    return json_decode($strJson, $bAssoc, $iDepth, $iOptions);
 }
 
 ?>

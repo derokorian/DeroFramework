@@ -15,7 +15,7 @@ use Dero\Core\Timing;
 ob_start();
 
 Timing::start('elapsed');
-Dero\Core\Main::Init();
+Dero\Core\Main::run();
 Timing::end('elapsed');
 
 IS_DEBUG && Timing::setHeaderTimings();

@@ -1,7 +1,10 @@
 {
-    "image_url": "/images/",
-    "session_name": "DFW_SESSION",
-    "script_url": "/scripts/",
-    "style_url": "/styles/",
-    "site_url": "/"
+  "image_url": "/images/",
+  "script_url": "/scripts/",
+  "style_url": "/styles/",
+  "site_url": "/",
+  "template": {
+    "extensions": ["phtml","php", "tpl", "html"],
+    "paths": ["dero/view"]
+  }
 }

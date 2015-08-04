@@ -39,7 +39,7 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             'test_string' => 'string',
             'test_fixed' => 'fixed'
         ];
-        $oRet = $this->oModel->validate($aVars);
+        $oRet = $this->oModel->Validate($aVars);
         $this->assertFalse($oRet->HasFailure());
     }
 
@@ -50,7 +50,7 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
      */
     public function testValidateFailure($aVars, $strError)
     {
-        $oRet = $this->oModel->validate($aVars);
+        $oRet = $this->oModel->Validate($aVars);
         $this->assertTrue($oRet->HasFailure());
         $this->assertEquals(
             $strError,
@@ -164,7 +164,7 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             "`created` DATETIME NOT NULL  ,\n\t".
             "`modified` DATETIME NOT NULL  \n".
             ") Engine=InnoDB",
-            $this->oModel->GenerateCreateTable()
+            $this->oModel->GetCreateTable()
         );
     }
 
@@ -187,31 +187,15 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
         return $oRetval;
     }
 
-    public function testCreateTableSuccess()
-    {
-        $oRetval = $this->setQuerySuccess('Successfully Created Table');
-        $oRet = $this->oModel->CreateTable();
-        $this->assertFalse($oRet->HasFailure());
-        $this->assertEquals($oRetval, $oRet->Get());
-    }
-
-    public function testCreateTableFailure()
+    public function testVerifyModelDefinitionFailedShow()
     {
         $this->setQueryException();
-        $oRet = $this->oModel->CreateTable();
+        $oRet = $this->oModel->VerifyModelDefinition();
         $this->assertTrue($oRet->HasFailure());
         $this->assertEquals('Unable to query database', $oRet->GetError());
     }
 
-    public function testVerifyTableDefinitionFailedShow()
-    {
-        $this->setQueryException();
-        $oRet = $this->oModel->VerifyTableDefinition();
-        $this->assertTrue($oRet->HasFailure());
-        $this->assertEquals('Unable to query database', $oRet->GetError());
-    }
-
-    public function testVerifyTableDefinitionFailedDescribe()
+    public function testVerifyModelDefinitionFailedDescribe()
     {
         $oRet1 = new QueryRet();
         $oRet1->Set(['table exists']);
@@ -222,12 +206,12 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             ->method('Query')
             ->will($this->onConsecutiveCalls($oRet1, $oRet2));
 
-        $oRet = $this->oModel->VerifyTableDefinition();
+        $oRet = $this->oModel->VerifyModelDefinition();
         $this->assertTrue($oRet->HasFailure());
         $this->assertEquals('Unable to query database', $oRet->GetError());
     }
 
-    public function testVerifyTableDefinitionSuccessCreate()
+    public function testVerifyModelDefinitionSuccessCreate()
     {
         $oRet1 = new QueryRet();
         $oRet1->Set([]);
@@ -238,12 +222,12 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             ->method('Query')
             ->will($this->onConsecutiveCalls($oRet1, $oRet2));
 
-        $oRet = $this->oModel->VerifyTableDefinition();
+        $oRet = $this->oModel->VerifyModelDefinition();
         $this->assertFalse($oRet->HasFailure());
-        $this->assertEquals($oRet2, $oRet->Get());
+        $this->assertEquals(['test' => 'Table successfully created'], $oRet->Get());
     }
 
-    public function testVerifyTableDefinitionSuccessAlter()
+    public function testVerifyModelDefinitionSuccessAlter()
     {
         $oRet1 = new QueryRet();
         $oRet1->Set(['table exists']);
@@ -263,9 +247,9 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             ->method('Query')
             ->will($this->onConsecutiveCalls($oRet1, $oRet2, $oRet3));
 
-        $oRet = $this->oModel->VerifyTableDefinition();
+        $oRet = $this->oModel->VerifyModelDefinition();
         $this->assertFalse($oRet->HasFailure());
-        $this->assertEquals([
+        $this->assertEquals(['test' => [
             'Updating column test_id',
             'Adding column test_int',
             'Adding column test_bool',
@@ -275,8 +259,8 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             'Adding column test_fixed',
             'Adding column created',
             'Adding column modified',
-            'message' => 'test has been updated'
-        ], $oRet->Get());
+            'test has been updated'
+        ]], $oRet->Get());
     }
 }
 
@@ -305,55 +289,59 @@ class BaseModelExtension extends \Dero\Data\BaseModel
         'test_id' => [
             COL_TYPE => COL_TYPE_INTEGER,
             KEY_TYPE => KEY_TYPE_PRIMARY,
-            'required' => false,
-            'extra' => [
+            DB_REQUIRED => false,
+            DB_EXTRA => [
                 DB_AUTO_INCREMENT
             ]
         ],
         'test_int' => [
             COL_TYPE => COL_TYPE_INTEGER,
             KEY_TYPE => KEY_TYPE_FOREIGN,
-            'foreign_table' => 'test',
-            'foreign_column' => 'test_id',
-            'required' => true
+            FOREIGN_TABLE => 'test',
+            FOREIGN_COLUMN => 'test_id',
+            DB_REQUIRED => true
         ],
         'test_bool' => [
             COL_TYPE => COL_TYPE_BOOLEAN,
-            'required' => true
+            DB_REQUIRED => true
         ],
         'test_dec' => [
             COL_TYPE => COL_TYPE_DECIMAL,
-            'col_length' => 10,
+            COL_LENGTH => 10,
             'scale' => 3,
-            'required' => false
+            DB_REQUIRED => false
         ],
         'test_nullable' => [
             COL_TYPE => COL_TYPE_INTEGER,
-            'required' => false,
-            'extra' => [
+            DB_REQUIRED => false,
+            DB_EXTRA => [
                 DB_NULLABLE
             ]
         ],
         'test_string' => [
             COL_TYPE => COL_TYPE_STRING,
             KEY_TYPE => KEY_TYPE_UNIQUE,
-            'col_length' => 15,
-            'required' => true,
-            'validation_pattern' => '/^[a-z][a-z0-9]+$/i'
+            COL_LENGTH => 15,
+            DB_REQUIRED => true,
+            DB_VALIDATION => '/^[a-z][a-z0-9]+$/i'
         ],
         'test_fixed' => [
             COL_TYPE => COL_TYPE_FIXED_STRING,
-            'col_length' => 5,
-            'required' => true,
-            'validation_pattern' => '/^[a-z]+$/i'
+            COL_LENGTH => 5,
+            DB_REQUIRED => true,
+            DB_VALIDATION => '/^[a-z]+$/i'
         ],
         'created' => [
             COL_TYPE => COL_TYPE_DATETIME,
-            'required' => false
+            DB_REQUIRED => false
         ],
         'modified' => [
             COL_TYPE => COL_TYPE_DATETIME,
-            'required' => false
+            DB_REQUIRED => false
         ]
     ];
+
+    public function getCreateTable() {
+        return $this->GenerateCreateTable();
+    }
 }

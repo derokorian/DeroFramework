@@ -26,11 +26,11 @@ class BaseController
         }
         if( isset($aParams['rows']) )
         {
-            $aOpts['rows'] = $aParams['rows'];
+            $aOpts['rows'] = (int) $aParams['rows'];
         }
         if( isset($aParams['skip']) )
         {
-            $aOpts['skip'] = $aParams['skip'];
+            $aOpts['skip'] = (int) $aParams['skip'];
         }
     }
 
@@ -129,6 +129,7 @@ class BaseController
             case 505:
                 $str .= 'HTTP Version Not Supported'; break;
         }
-        header($str, true, $iCode);
+        if (!headers_sent())
+            header($str, true, $iCode);
     }
 }

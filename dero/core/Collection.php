@@ -51,7 +51,7 @@ class Collection implements \Iterator,
      */
     public function rewind ()
     {
-        $this->Index = 0;
+        $this->index = 0;
     }
 
     /**

@@ -1,9 +1,11 @@
 <?php
 
 namespace Dero\Controller;
+use Dero\Core\Config;
 use Dero\Data\Factory;
 use Dero\Core\BaseController;
 use Dero\Core\Timing;
+use Dero\Data\Parameter;
 
 /**
  * Version controller
@@ -74,7 +76,7 @@ class VersionController extends BaseController
                 require_once $strFile;
                 /** @var \Dero\Data\BaseModel $oModel */
                 $oModel = new $strModel($db);
-                $oRet = $oModel->VerifyTableDefinition();
+                $oRet = $oModel->VerifyModelDefinition();
                 if( $oRet->HasFailure() )
                 {
                     echo "Error on $strModel table\n";
@@ -89,5 +91,86 @@ class VersionController extends BaseController
             echo "Problem creating tables.\n";
             var_dump($e);
         }
+
+        try {
+            $aDataPaths = Config::GetValue('application', 'paths', 'data_files');
+            if (!empty($aDataPaths)) {
+                $aDataPaths = (array) $aDataPaths;
+                $aData = [];
+                foreach ($aDataPaths as $sDataPath) {
+                    $sDataPath = ROOT . DS . $sDataPath . DS;
+                    if (is_readable($sDataPath)) {
+                        $aDataFiles = glob($sDataPath . '*');
+                        foreach($aDataFiles as $sDataFile) {
+                            $mData = json_decode(file_get_contents($sDataFile), true);
+                            $aData = array_merge($aData, (array) $mData);
+                        }
+                    }
+                }
+                foreach ($aData as $aTableData) {
+                    $sSelect = sprintf(
+                        'SELECT * FROM `%s` WHERE %s',
+                        $aTableData['target'],
+                        $this->buildDataWhere($aTableData['identifiers'], $aTableData['data'])
+                    );
+                    $aExistingData = $db->Query($sSelect)->GetAll();
+                    $aDataKeys = array_keys($aTableData['data'][0]);
+                    $hInsert = $db->Prepare(sprintf(
+                        'INSERT INTO `%s` (`%s`,`%s`) VALUES (:%s,%s)',
+                        $aTableData['target'],
+                        implode('`,`', $aDataKeys),
+                        implode('`,`', $aTableData['timestamps']),
+                        implode(',:', $aDataKeys),
+                        implode(',', array_fill(0, count($aTableData['timestamps']), 'NOW()'))
+                    ));
+                    foreach ($aTableData['data'] as $aRow) {
+                        $bRowExists = false;
+                        foreach ($aExistingData as $mRow) {
+                            $mRow = (array) $mRow;
+                            $bIsThisRow = true;
+                            foreach ($aDataKeys as $sKey) {
+                                if (!isset($mRow[$sKey]) ||
+                                    $mRow[$sKey] != $aRow[$sKey]) {
+                                    $bIsThisRow = false;
+                                    break;
+                                }
+                            }
+                            if ($bIsThisRow) {
+                                $bRowExists = true;
+                            }
+                        }
+                        if (!$bRowExists) {
+                            foreach($aDataKeys as $sKey) {
+                                $hInsert->BindParam(new Parameter($sKey, $aRow[$sKey]));
+                            }
+                            $hInsert->Execute();
+                            echo "Successfully added ". implode(',', $aRow) . " to $aTableData[target]\n";
+
+                        }
+                    }
+                }
+            }
+        } catch(\Exception $e) {
+            echo "Problem loading data.\n";
+            var_dump($e);
+        }
+    }
+
+    private function buildDataWhere($aIdentifiers, $aData)
+    {
+        $aChecks = [];
+        foreach($aData as $aRow) {
+            $sCheck = '';
+            foreach($aIdentifiers as $sIdentifier) {
+                $sCheck .= sprintf(
+                    '%s`%s` = "%s"',
+                    strlen($sCheck) > 0 ? ' AND ' : '',
+                    $sIdentifier,
+                    $aRow[$sIdentifier]
+                );
+            }
+            $aChecks[] = "($sCheck)";
+        }
+        return implode(' OR ', $aChecks);
     }
 }

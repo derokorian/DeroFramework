@@ -11,6 +11,15 @@ namespace Dero\Core;
 
 class Main
 {
+    public static function run()
+    {
+        static::init();
+        $aRoute = static::findRoute();
+        if (!empty($aRoute)) {
+            static::loadRoute($aRoute);
+        }
+    }
+
     /**
      * Initializes and runs the application
      * @codeCoverageIgnore
@@ -20,7 +29,7 @@ class Main
         /*
          * Define error reporting settings
          */
-        define('IS_DEBUG', (bool)getenv('PHP_DEBUG')  === true || (isset($_GET['debug']) && $_GET['debug'] === '1'));
+        define('IS_DEBUG', !empty(getenv('PHP_DEBUG')) || !empty($_GET['debug']));
         if( IS_DEBUG )
         {
             ini_set('error_reporting', E_ALL);
@@ -42,27 +51,36 @@ class Main
         }
 
         // Load settings
+        static::loadSettings();
+
+        $strSessionName = Config::GetValue('security','sessions', 'name');
+        session_name($strSessionName);
+        session_set_cookie_params(
+            Config::GetValue('security', 'sessions', 'lifetime'),
+            '/',
+            parse_url(Config::GetValue('website', 'site_url'), PHP_URL_HOST),
+            false,
+            true
+        );
+        session_start();
+    }
+
+    protected static function loadSettings()
+    {
         $files = glob(dirname(__DIR__) . '/settings/*.php');
         foreach($files as $file)
         {
             if( is_readable($file) && is_file($file) )
                 require_once $file;
         }
-
-        $strSessionName = Config::GetValue('website','session_name');
-        session_name($strSessionName);
-        session_start();
-
-        self::LoadRoute();
     }
 
     /**
      * Loads the controllers and models necessary to complete the given route request
      * @codeCoverageIgnore
      */
-    private static function LoadRoute()
+    private static function findRoute()
     {
-        $bRouteFound = false;
         if( PHP_SAPI === 'cli' )
         {
             $strURI = !empty($GLOBALS["argv"][1]) ? $GLOBALS["argv"][1] : '';
@@ -95,94 +113,111 @@ class Main
             is_readable($file) && include_once $file;
         }
 
-        $fLoadRoute = function(Array $aRoute)
-        {
-            if( empty($aRoute['dependencies']) )
-                $oController = new $aRoute['controller']();
-            else
-            {
-                $aDep = array();
-                foreach( $aRoute['dependencies'] as $strDependency )
-                {
-                    if( class_exists($strDependency) )
-                    {
-                        $aDep[] = new $strDependency();
-                    }
-                }
-                $oRef = new \ReflectionClass($aRoute['controller']);
-                $oController = $oRef->newInstanceArgs($aDep);
-            }
-
-            if( is_numeric($aRoute['method']) )
-            {
-                $method = $aRoute['Match'][$aRoute['method']];
-            }
-            else
-            {
-                $method = $aRoute['method'];
-            }
-
-            Timing::start('controller');
-            if( empty($aRoute['args']) || !isset($aRoute['Match'][$aRoute['args'][0]]))
-            {
-                $mRet = $oController->{$method}();
-            }
-            else
-            {
-                if( count($aRoute['args']) > 1 )
-                {
-                    $args = [];
-                    foreach($aRoute['args'] as $arg)
-                    {
-                        if( isset($aRoute['Match'][$arg]) )
-                        {
-                            $args[] = $aRoute['Match'][$arg];
-                        }
-                    }
-                    $mRet = call_user_func_array([$oController, $method], $args);
-                }
-                else
-                {
-                    $mRet = $oController->{$method}($aRoute['Match'][$aRoute['args'][0]]);
-                }
-            }
-            Timing::end('controller');
-
-            if( is_scalar($mRet) )
-            {
-                echo $mRet;
-            }
-            elseif( !empty($mRet) )
-            {
-                $mRet = json_encode($mRet);
-                header('Content-Type: application/json');
-                header('Content-Length: '. strlen($mRet));
-                echo $mRet;
-            }
-        };
-
         // Attempt to find the requested route
         foreach($aRoutes as $aRoute)
         {
             if( !empty($aRoute['pattern'])
                 && preg_match($aRoute['pattern'], $strURI, $match) )
             {
-                $bRouteFound = true;
+                if (!class_exists($aRoute['controller']) ||
+                    !method_exists(
+                        $aRoute['controller'],
+                        is_numeric($aRoute['method'])
+                            ? $aRoute['Match'][$aRoute['method']]
+                            : $aRoute['method']
+                        ))
+                {
+                    // Class or method does not exist,  use default
+                    break;
+                }
                 $aRoute['Request'] = $strURI;
                 $aRoute['Match'] = $match;
-                $fLoadRoute($aRoute);
-                break;
+                return $aRoute;
             }
         }
 
         // If route wasn't found, try to load default
-        if( !$bRouteFound && isset($aRoutes['default']) )
+        if (isset($aRoutes['default']))
         {
-            $fLoadRoute($aRoutes['default']);
+            return $aRoutes['default'];
+        }
+        return [];
+    }
+
+    protected static function loadRoute(array $aRoute)
+    {
+        if (isset($aRoute['permissions'])) {
+            $oAuth = new \Authorize();
+            if ($oAuth->canUser($aRoute['permissions'][0], $aRoute['permissions'][1]) !== true) {
+                $sRet = json_encode(['error' => 'User not logged in or not authorized to use this service']);
+                header($_SERVER['SERVER_PROTOCOL'] . ' 401 Unauthorized', true, 401);
+                header('Content-Type: application/json');
+                header('Content-Length: '. strlen($sRet));
+                echo $sRet;
+                return;
+            }
+        }
+
+        if( empty($aRoute['dependencies']) )
+            $oController = new $aRoute['controller']();
+        else
+        {
+            $aDeps = array();
+            foreach( $aRoute['dependencies'] as $strDependency )
+            {
+                if( class_exists($strDependency) )
+                {
+                    $aDeps[] = new $strDependency();
+                }
+            }
+            $oController = new $aRoute['controller'](...$aDeps);
+        }
+
+        if( is_numeric($aRoute['method']) )
+        {
+            $method = $aRoute['Match'][$aRoute['method']];
         }
         else
         {
-            // ToDo: Need some handling here for undefined request and no default
+            $method = $aRoute['method'];
+        }
+
+        Timing::start('controller');
+        if( empty($aRoute['args']) || !isset($aRoute['Match'][$aRoute['args'][0]]))
+        {
+            $mRet = $oController->{$method}();
+        }
+        else
+        {
+            if( count($aRoute['args']) > 1 )
+            {
+                $args = [];
+                foreach($aRoute['args'] as $arg)
+                {
+                    if( isset($aRoute['Match'][$arg]) )
+                    {
+                        $args[] = $aRoute['Match'][$arg];
+                    }
+                }
+                $mRet = $oController->{$method}(...$args);
+            }
+            else
+            {
+                $mRet = $oController->{$method}($aRoute['Match'][$aRoute['args'][0]]);
+            }
+        }
+        Timing::end('controller');
+
+        if( is_scalar($mRet) )
+        {
+            echo $mRet;
+        }
+        elseif( !is_null($mRet) )
+        {
+            $mRet = json_encode($mRet);
+            header('Content-Type: application/json');
+            header('Content-Length: '. strlen($mRet));
+            echo $mRet;
         }
     }
 } 

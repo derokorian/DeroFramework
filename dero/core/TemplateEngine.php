@@ -15,17 +15,17 @@ class TemplateEngine {
 
     public static function LoadView($strView, Array $vars = [])
     {
-        $aExt = ['phtml','php', 'tpl', 'html'];
-        foreach( $aExt as $strExt )
-        {
-            $strFile = ROOT . '/app/view/' .  $strView . '.' . $strExt;
-            if( is_readable($strFile) )
-            {
-                $strContent = file_get_contents($strFile);
-                return self::ParseTemplate($strContent, $vars);
+        $aExt = Config::GetValue('website', 'template', 'extensions');
+        $aPath = Config::GetValue('website', 'template', 'paths');
+        foreach ($aPath as $sPath) {
+            foreach ($aExt as $strExt) {
+                $strFile = ROOT . DS . $sPath . DS . $strView . '.' . $strExt;
+                if (file_exists($strFile) && is_readable($strFile) && is_file($strFile)) {
+                    $strContent = file_get_contents($strFile);
+                    return self::ParseTemplate($strContent, $vars);
+                }
             }
         }
-
     }
 
     public static function ParseTemplate($strContent, Array $vars = [])
@@ -93,6 +93,8 @@ class TemplateEngine {
         }
 
         // replace embedded templates, variables, and constants
+        // {case|arg} IE: {tpl|scripts} {_SERVER|HTTP_HOST}
+        // {var} variable or constant name IE: {strUsername} {PHP_INT_MAX}
         if (preg_match_all('#(?<!\{)\{(\w+)(\|([\w\\\/]+))?\}#i', $strContent, $matches)) {
             foreach ($matches[1] as $k => $match) {
                 switch ($match) {
@@ -143,6 +145,7 @@ class TemplateEngine {
             }
         }
 
+        // {someVariableName|defaultValue}
         if (preg_match_all('#(?<!\{)\{(\w+)\|(.+)\}#i', $strContent, $matches)) {
             foreach($matches[1] as $k => $match)
             {

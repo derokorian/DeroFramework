@@ -6,7 +6,9 @@ trait assertHeaders
 {
     protected function assertHeaderStatus($iStatusCode)
     {
-        $this->assertEquals($iStatusCode, http_response_code());
+        $iActualCode = http_response_code();
+        if ($iActualCode !== false)
+            $this->assertEquals($iStatusCode, $iActualCode);
     }
 
     protected function assertHeaderSet($strKey, $mValue)
