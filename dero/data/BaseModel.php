@@ -32,8 +32,10 @@ abstract class BaseModel
      * Initializes a instance of BaseModel
      * @param DataInterface $DB
      */
-    public function __construct(DataInterface $DB)
+    public function __construct(DataInterface $DB = null)
     {
+        if (!$DB instanceof DataInterface)
+            $DB = Factory::GetDataInterface('default');
         $this->DB = $DB;
     }
 
