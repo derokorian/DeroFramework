@@ -17,9 +17,9 @@ use Dero\Data\Parameter;
 
 class VersionController extends BaseController
 {
-    const RE_CLASS = '/class\s+(\w+)\s+extends\s+basemodel/i';
+    const RE_CLASS = '/class\s+(\w+)\s+extends\s+%s/i';
     const RE_NAMESPACE = '/namespace\s+([\w\\\\]+)\s*;/i';
-    const SH_GREP_CLASS = 'grep -ir -E "class \w+ extends BaseModel" '.ROOT.'/*';
+    const SH_GREP_CLASS = 'grep -ir -E "class \w+ extends %s" '.ROOT.'/*';
     const SH_GREP_NS_PATTERN = 'grep -iE ^namespace.*$ %s';
 
     public function __construct() {
@@ -30,36 +30,29 @@ class VersionController extends BaseController
         }
     }
 
-    private function getModels()
+    private function getModels($sExtends = 'BaseModel')
     {
         $aRet = [];
-        exec(self::SH_GREP_CLASS, $aOutput, $iRet);
-        if( $iRet == 0 )
-        {
-            foreach($aOutput as $strOut)
-            {
-                if( preg_match('/^[A-Z]:/i', $strOut) )
-                {
+        exec(sprintf(self::SH_GREP_CLASS, $sExtends), $aOutput, $iRet);
+        if ($iRet < 2) {
+            foreach ($aOutput as $strOut) {
+                if (preg_match('/^[A-Z]:/i', $strOut)) {
                     list($cDrive, $strFile, $strClassDefinition) = explode(':', $strOut);
                     $strFile = $cDrive .':'. $strFile;
-                }
-                else
-                {
+                } else {
                     list($strFile, $strClassDefinition) = explode(':', $strOut);
                 }
-                $strClass = preg_replace(self::RE_CLASS,'\1', $strClassDefinition);
+                $strClass = preg_replace(sprintf(self::RE_CLASS, $sExtends),'\1', $strClassDefinition);
                 $strMatch = exec(sprintf(self::SH_GREP_NS_PATTERN, $strFile));
-                if( strlen($strMatch) > 0 && preg_match(self::RE_NAMESPACE, $strMatch) )
-                {
+                if (strlen($strMatch) > 0 && preg_match(self::RE_NAMESPACE, $strMatch)) {
                     $strMatch = preg_replace(self::RE_NAMESPACE,'\1',$strMatch);
                     $strClass = sprintf('%s\%s', $strMatch, $strClass);
                 }
                 $aRet[$strClass] = realpath($strFile);
+                $aRet = array_merge($aRet, $this->getModels(end(explode('\\', $strClass))));
             }
-        }
-        else
-        {
-            die("grep failed for classes extending base model\n");
+        } else {
+            die("grep returned $iRet searching for classes extending $sExtends\n");
         }
         return $aRet;
     }
