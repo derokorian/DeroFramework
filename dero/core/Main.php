@@ -119,6 +119,8 @@ class Main
             if( !empty($aRoute['pattern'])
                 && preg_match($aRoute['pattern'], $strURI, $match) )
             {
+                $aRoute['Request'] = $strURI;
+                $aRoute['Match'] = $match;
                 if (!class_exists($aRoute['controller']) ||
                     !method_exists(
                         $aRoute['controller'],
@@ -130,8 +132,6 @@ class Main
                     // Class or method does not exist,  use default
                     break;
                 }
-                $aRoute['Request'] = $strURI;
-                $aRoute['Match'] = $match;
                 return $aRoute;
             }
         }

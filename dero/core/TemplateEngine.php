@@ -48,7 +48,7 @@ class TemplateEngine {
         }
 
         // call static methods with arguments
-        if( preg_match_all('#(?<!\{)\{(\w+)>(\w+)\((.*)\)\}#i', $strContent, $matches) ) {
+        if( preg_match_all('#(?<!\{)\{(\w+)::(\w+)\((.*)\)\}#i', $strContent, $matches) ) {
             foreach ($matches[0] as $k => $match) {
                 $class = $matches[1][$k];
                 $method = $matches[2][$k];
@@ -129,17 +129,21 @@ class TemplateEngine {
                             $strContent);
                         break;
                     default:
-                        foreach( self::$NAMESPACES as $ns ) {
-                            $class = $ns . $match;
-                            if (class_exists($class)) {
-                                $action = $matches[3][$k];
-                                $class = new $class();
-                                if (method_exists($class, $action)) {
-                                    $strContent = str_replace($matches[0][$k], call_user_func_array('self::View', $class->$action()), $strContent);
-                                } elseif (property_exists($class, $action)) {
-                                    $strContent = str_replace($matches[0][$k], $class->$action, $strContent);
+                        try {
+                            foreach (self::$NAMESPACES as $ns) {
+                                $class = $ns . $match;
+                                if (class_exists($class)) {
+                                    $action = $matches[3][$k];
+                                    $class = new $class();
+                                    if (method_exists($class, $action)) {
+                                        $strContent = str_replace($matches[0][$k], $class->$action(), $strContent);
+                                    } elseif (property_exists($class, $action)) {
+                                        $strContent = str_replace($matches[0][$k], $class->$action, $strContent);
+                                    }
                                 }
                             }
+                        } catch (\Exception $e) {
+                            $strContent = str_replace($matches[0][$k], '', $strContent);
                         }
                 }
             }
