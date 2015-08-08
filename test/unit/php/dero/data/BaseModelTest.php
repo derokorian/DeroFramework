@@ -155,7 +155,7 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             "`test_id` INT NOT NULL auto_increment  PRIMARY KEY,\n\t".
             "`test_int` INT NOT NULL  ,\n\t\t".
             "FOREIGN KEY test_test_id (test_int)\n\t\t\t".
-			"REFERENCES `test` (test_id),\n\t".
+            "REFERENCES `test` (test_id),\n\t".
             "`test_bool` TINYINT(1) NOT NULL  ,\n\t".
             "`test_dec` DECIMAL(10, 3) NOT NULL  ,\n\t".
             "`test_nullable` INT NULL  ,\n\t".
@@ -283,9 +283,9 @@ class QueryRet
 
 class BaseModelExtension extends \Dero\Data\BaseModel
 {
-    protected static $TABLE_NAME = 'test';
+    const TABLE_NAME = 'test';
 
-    protected static $COLUMNS = [
+    const COLUMNS = [
         'test_id' => [
             COL_TYPE => COL_TYPE_INTEGER,
             KEY_TYPE => KEY_TYPE_PRIMARY,

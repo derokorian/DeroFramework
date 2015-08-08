@@ -13,13 +13,13 @@ abstract class BaseModel
     protected $DB;
 
     /** @var string */
-    protected static $TABLE_NAME = '';
+    const TABLE_NAME = '';
 
     /** @var array */
-    protected static $COLUMNS = [];
+    const COLUMNS = [];
 
     /** @var array */
-    protected static $SUB_OBJECTS = [];
+    const SUB_OBJECTS = [];
 
     /** @const Used in queries that do a group concatenation */
     const CONCAT_SEPARATOR = 0x1D;
@@ -52,7 +52,7 @@ abstract class BaseModel
     ) {
         $aVars = (array) $oObj;
         $oRetval = new Retval();
-        foreach ($aColumns ?: static::$COLUMNS as $strCol => $aCol) {
+        foreach ($aColumns ?: static::COLUMNS as $strCol => $aCol) {
             if (isset($aCol[DB_REQUIRED]) &&
                 $aCol[DB_REQUIRED] === true &&
                 !isset($aVars[$strCol])) {
@@ -105,18 +105,67 @@ abstract class BaseModel
         return $oRetval;
     }
 
+    public function Get(array $aOpts = array(), $sTable = null)
+    {
+        $oRet = new Retval();
+        $aCols = $this->getColsFromTable($sTable);
+        if (!is_array($aCols)) {
+            // Uh oh, object name provided is not valid, return an error
+            $oRet->AddError(sprintf(
+                'Unrecognized table provided to '. get_called_class()  . '::' . __FUNCTION__ . "($sTable)"
+            ));
+            return $oRet;
+        }
+        $oParams = new ParameterCollection();
+        $sSql = sprintf(
+            'SELECT `%s` FROM `%s` %s',
+            implode('`,`', array_keys($aCols)),
+            $sTable,
+            $this->GenerateCriteria($oParams, $aOpts, '', $aCols)
+        );
+        try
+        {
+            $oRet->Set(array_map(function($oItem) use ($aCols) {
+                foreach ($aCols as $sCol => $aCol) {
+                    switch ($aCol[COL_TYPE]) {
+                        case COL_TYPE_INTEGER:
+                            $oItem->$sCol = (int) $oItem->$sCol;
+                            break;
+                        case COL_TYPE_BOOLEAN:
+                            $oItem->$sCol = (bool) $oItem->$sCol;
+                            break;
+                        case COL_TYPE_DECIMAL:
+                            $oItem->$sCol = (float) $oItem->$sCol;
+                            break;
+                        // other types are strings, no cast required
+                    }
+                    return $oItem;
+                }
+            }, $this->DB
+                ->Prepare($sSql)
+                ->BindParams($oParams)
+                ->Execute()
+                ->GetAll()));
+        } catch (DataException $e) {
+            $oRet->AddError('Unable to query database', $e);
+        }
+        return $oRet;
+    }
+
     protected function getColsFromTable(&$sTable)
     {
         if (empty($sTable)) {
-            $sTable = static::$TABLE_NAME;
+            $sTable = static::TABLE_NAME;
         }
-        if ($sTable === static::$TABLE_NAME) {
-            return static::$COLUMNS;
-        } elseif (isset(static::$SUB_OBJECTS[$sTable])) {
-            return static::$SUB_OBJECTS[$sTable];
-        } else {
-            return null;
+        if ($sTable === static::TABLE_NAME) {
+            return static::COLUMNS;
         }
+        foreach(static::SUB_OBJECTS as $sSubObject => $aCols) {
+            if ($sSubObject === $sTable) {
+                return $aCols;
+            }
+        }
+        return null;
     }
 
     /**
@@ -269,7 +318,7 @@ abstract class BaseModel
         $aCols = [];
         $aVals = [];
         $aOpts = (array) $oObj;
-        foreach ($aColumns ?: static::$COLUMNS as $name => $def) {
+        foreach ($aColumns ?: static::COLUMNS as $name => $def) {
             if (strtolower($name) == 'created' || strtolower($name) == 'modified') {
                 $aCols[] = sprintf('`%s`', $name);
                 $aVals[] = 'NOW()';
@@ -285,7 +334,7 @@ abstract class BaseModel
         }
         return sprintf(
             'INSERT INTO `%s` (%s) VALUES (%s)',
-            $strTable ?: static::$TABLE_NAME,
+            $strTable ?: static::TABLE_NAME,
             implode(',', $aCols),
             implode(',',$aVals)
         );
@@ -309,12 +358,12 @@ abstract class BaseModel
     ) {
         $strRet = sprintf(
             'UPDATE `%s` SET ',
-            $strTable ?: static::$TABLE_NAME
+            $strTable ?: static::TABLE_NAME
         );
         $strIdField = '';
         $cIdType = null;
         $aOpts = (array) $oObj;
-        foreach ($aColumns ?: static::$COLUMNS as $name => $def) {
+        foreach ($aColumns ?: static::COLUMNS as $name => $def) {
             if (strtolower($name) == 'created') {
                 continue;
             } elseif (strtolower($name) == 'modified') {
@@ -353,7 +402,7 @@ abstract class BaseModel
     ) {
         $this->where(true);
         $sql = '';
-        $aColumns = $aColumns ?: static::$COLUMNS;
+        $aColumns = $aColumns ?: static::COLUMNS;
         foreach ($aColumns as $name => $def) {
             if (isset($aOpts[$name])) {
                 $type = $this->getParamTypeFromColType($aOpts[$name], $def);
@@ -363,6 +412,8 @@ abstract class BaseModel
                         $strColPrefix,
                         $name
                     );
+                } elseif (is_array($aOpts[$name])) {
+                    // TODO: Generate IN clause
                 } else {
                     $sql .= sprintf('%s %s%s=:%s ',
                         $this->where(),
@@ -582,18 +633,18 @@ abstract class BaseModel
         $sTable = null,
         array $aColumns = null
     ) {
-        if (strlen($sTable ?: static::$TABLE_NAME) == 0
-            || count($aColumns ?: static::$COLUMNS) == 0)
+        if (strlen($sTable ?: static::TABLE_NAME) == 0
+            || count($aColumns ?: static::COLUMNS) == 0)
             return null;
 
         $aCols = [];
-        foreach ($aColumns ?: static::$COLUMNS as $strCol => $aCol) {
+        foreach ($aColumns ?: static::COLUMNS as $strCol => $aCol) {
             $aCols[] = $this->getColumnSqlFromDefinition($strCol, $aCol);
         }
 
         return sprintf(
             "CREATE TABLE IF NOT EXISTS `%s` (%s\n) Engine=InnoDB",
-            $sTable ?: static::$TABLE_NAME,
+            $sTable ?: static::TABLE_NAME,
             implode(',', $aCols)
         );
     }
@@ -608,7 +659,7 @@ abstract class BaseModel
         array $aColumns = null
     ) {
         $oRetval = new Retval();
-        $strSql = sprintf("SHOW TABLES LIKE '%s'", $sTable ?: static::$TABLE_NAME);
+        $strSql = sprintf("SHOW TABLES LIKE '%s'", $sTable ?: static::TABLE_NAME);
         try {
             $oRetval->Set(
                 $this->DB
@@ -648,10 +699,10 @@ abstract class BaseModel
         }
         else
         {
-            $aRet[static::$TABLE_NAME] = $oRetval->Get();
+            $aRet[static::TABLE_NAME] = $oRetval->Get();
         }
 
-        foreach( static::$SUB_OBJECTS as $strTable => $aCols )
+        foreach( static::SUB_OBJECTS as $strTable => $aCols )
         {
             $oRetval = $this->VerifyTableDefinition($strTable, $aCols);
             if( $oRetval->HasFailure() )
@@ -680,8 +731,8 @@ abstract class BaseModel
         $sTable = null,
         array $aColumns = null
     ) {
-        $sTable = $sTable ?: static::$TABLE_NAME;
-        $aColumns = $aColumns ?: static::$COLUMNS;
+        $sTable = $sTable ?: static::TABLE_NAME;
+        $aColumns = $aColumns ?: static::COLUMNS;
 
         $oRetval = $this->verifyTableExistence($sTable, $aColumns);
         if ($oRetval->HasFailure() || $oRetval->Get() == static::TABLE_CREATED) {
