@@ -7,7 +7,7 @@ $aRoutes[] = [
     'pattern'      => '#^install$#i',
     'controller'   => 'Dero\Controller\VersionController',
     'dependencies' => [],
-    'method'       => 'install',
+    'method'       => 'upgrade',
     'args'         => []
 ];
 $aRoutes[] = [
