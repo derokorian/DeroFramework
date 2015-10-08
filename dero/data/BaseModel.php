@@ -105,6 +105,13 @@ abstract class BaseModel
         return $oRetval;
     }
 
+    /**
+     * Gets data from a table
+     *
+     * @param array $aOpts
+     * @param string $sTable
+     * @return Retval
+     */
     public function Get(array $aOpts = array(), $sTable = null)
     {
         $oRet = new Retval();
@@ -152,6 +159,10 @@ abstract class BaseModel
         return $oRet;
     }
 
+    /**
+     * @param $sTable
+     * @return array|null
+     */
     protected function getColsFromTable(&$sTable)
     {
         if (empty($sTable)) {
@@ -169,6 +180,8 @@ abstract class BaseModel
     }
 
     /**
+     * Inserts a new row into the root object, or a sub-object as specified
+     *
      * @param $oObj
      * @param $sTable
      * @return Retval
