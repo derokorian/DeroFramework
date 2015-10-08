@@ -12,13 +12,13 @@ namespace Dero\Core;
 class Main
 {
     protected static $sRoute;
-    
+
     public static function run()
     {
         static::init();
         $aRoute = static::findRoute();
         $mRet = !empty($aRoute) ? static::loadRoute($aRoute) : null;
-        
+
         if( is_scalar($mRet) )
         {
             echo $mRet;
@@ -39,29 +39,29 @@ class Main
     public static function init()
     {
         define('IS_DEBUG', !empty(getenv('PHP_DEBUG')) || !empty($_GET['debug']));
-        
+
         if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' &&
             isset($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'application/json') === 0)
         {
             $_POST = json_decode(file_get_contents('php://input'), true);
         }
-        
+
         static::loadSettings();
         static::initErrors();
         static::initSession();
-        
+
         if( PHP_SAPI === 'cli' )
         {
-            static::$sRotue = !empty($GLOBALS["argv"][1]) ? $GLOBALS["argv"][1] : '';
+            static::$sRoute = !empty($GLOBALS["argv"][1]) ? $GLOBALS["argv"][1] : '';
             define('IS_API_REQUEST', false);
         }
         else
         {
-            static::$sRotue = trim($_GET['REQUEST'], '/');
-            if( substr(static::$sRotue, 0, 3) == 'api' )
+            static::$sRoute = trim($_GET['REQUEST'], '/');
+            if( substr(static::$sRoute, 0, 3) == 'api' )
             {
                 define('IS_API_REQUEST', true);
-                static::$sRotue = substr(static::$sRotue, 4);
+                static::$sRoute = substr(static::$sRoute, 4);
             }
             else
             {
@@ -86,7 +86,7 @@ class Main
             ini_set('error_log', ROOT . '/logs/' . date('Y-m-d') . '-error.log');
         }
     }
-    
+
     protected static function initSession()
     {
         session_name(Config::GetValue('security','sessions', 'name'));
@@ -125,7 +125,7 @@ class Main
         }
         return $aRoutes;
     }
-    
+
     /**
      * Loads the controllers and models necessary to complete the given route request
      * @codeCoverageIgnore
@@ -213,7 +213,7 @@ class Main
             }
         }
         Timing::end('controller');
-        
+
         return $mRet;
     }
-} 
+}
