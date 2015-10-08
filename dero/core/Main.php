@@ -11,12 +11,24 @@ namespace Dero\Core;
 
 class Main
 {
+    protected static $sRoute;
+    
     public static function run()
     {
         static::init();
         $aRoute = static::findRoute();
-        if (!empty($aRoute)) {
-            static::loadRoute($aRoute);
+        $mRet = !empty($aRoute) ? static::loadRoute($aRoute) : null;
+        
+        if( is_scalar($mRet) )
+        {
+            echo $mRet;
+        }
+        elseif( !is_null($mRet) )
+        {
+            $mRet = json_encode($mRet);
+            header('Content-Type: application/json');
+            header('Content-Length: '. strlen($mRet));
+            echo $mRet;
         }
     }
 
@@ -26,10 +38,40 @@ class Main
      */
     public static function init()
     {
-        /*
-         * Define error reporting settings
-         */
         define('IS_DEBUG', !empty(getenv('PHP_DEBUG')) || !empty($_GET['debug']));
+        
+        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' &&
+            isset($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'application/json') === 0)
+        {
+            $_POST = json_decode(file_get_contents('php://input'), true);
+        }
+        
+        static::loadSettings();
+        static::initErrors();
+        static::initSession();
+        
+        if( PHP_SAPI === 'cli' )
+        {
+            static::$sRotue = !empty($GLOBALS["argv"][1]) ? $GLOBALS["argv"][1] : '';
+            define('IS_API_REQUEST', false);
+        }
+        else
+        {
+            static::$sRotue = trim($_GET['REQUEST'], '/');
+            if( substr(static::$sRotue, 0, 3) == 'api' )
+            {
+                define('IS_API_REQUEST', true);
+                static::$sRotue = substr(static::$sRotue, 4);
+            }
+            else
+            {
+                define('IS_API_REQUEST', false);
+            }
+        }
+    }
+
+    protected static function initErros()
+    {
         if( IS_DEBUG )
         {
             ini_set('error_reporting', E_ALL);
@@ -41,20 +83,13 @@ class Main
             ini_set('error_reporting', E_WARNING);
             ini_set('display_errors', false);
             ini_set('log_errors', true);
-            ini_set('error_log', dirname(__DIR__) . '/logs/' . date('Y-m-d') . '-error.log');
+            ini_set('error_log', ROOT . '/logs/' . date('Y-m-d') . '-error.log');
         }
-
-        if( isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' &&
-            isset($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'application/json') === 0)
-        {
-            $_POST = json_decode(file_get_contents('php://input'), true);
-        }
-
-        // Load settings
-        static::loadSettings();
-
-        $strSessionName = Config::GetValue('security','sessions', 'name');
-        session_name($strSessionName);
+    }
+    
+    protected static function initSession()
+    {
+        session_name(Config::GetValue('security','sessions', 'name'));
         session_set_cookie_params(
             Config::GetValue('security', 'sessions', 'lifetime'),
             '/',
@@ -67,7 +102,7 @@ class Main
 
     protected static function loadSettings()
     {
-        $files = glob(dirname(__DIR__) . '/settings/*.php');
+        $files = glob(ROOT . '/dero/settings/*.php');
         foreach($files as $file)
         {
             if( is_readable($file) && is_file($file) )
@@ -75,32 +110,8 @@ class Main
         }
     }
 
-    /**
-     * Loads the controllers and models necessary to complete the given route request
-     * @codeCoverageIgnore
-     */
-    private static function findRoute()
+    private static function getDefinedRoutes()
     {
-        if( PHP_SAPI === 'cli' )
-        {
-            $strURI = !empty($GLOBALS["argv"][1]) ? $GLOBALS["argv"][1] : '';
-            define('IS_API_REQUEST', false);
-        }
-        else
-        {
-            $strURI = trim($_GET['REQUEST'], '/');
-            if( substr($strURI, 0, 3) == 'api' )
-            {
-                define('IS_API_REQUEST', true);
-                $strURI = substr($strURI, 4);
-            }
-            else
-            {
-                define('IS_API_REQUEST', false);
-            }
-        }
-
-        // Load defined routes
         $aRoutes = [];
         $files = glob(ROOT . '/dero/routes/*.php');
         foreach($files as $file)
@@ -112,14 +123,21 @@ class Main
         {
             is_readable($file) && include_once $file;
         }
-
+        return $aRoutes;
+    }
+    
+    /**
+     * Loads the controllers and models necessary to complete the given route request
+     * @codeCoverageIgnore
+     */
+    private static function findRoute()
+    {
         // Attempt to find the requested route
-        foreach($aRoutes as $aRoute)
+        foreach(static::getDefinedRoutes() as $aRoute)
         {
             if( !empty($aRoute['pattern'])
-                && preg_match($aRoute['pattern'], $strURI, $match) )
+                && preg_match($aRoute['pattern'], static::$sRoute, $match) )
             {
-                $aRoute['Request'] = $strURI;
                 $aRoute['Match'] = $match;
                 if (!class_exists($aRoute['controller']) ||
                     !method_exists(
@@ -195,17 +213,7 @@ class Main
             }
         }
         Timing::end('controller');
-
-        if( is_scalar($mRet) )
-        {
-            echo $mRet;
-        }
-        elseif( !is_null($mRet) )
-        {
-            $mRet = json_encode($mRet);
-            header('Content-Type: application/json');
-            header('Content-Length: '. strlen($mRet));
-            echo $mRet;
-        }
+        
+        return $mRet;
     }
 } 
