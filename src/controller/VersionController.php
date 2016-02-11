@@ -2,7 +2,6 @@
 
 namespace Dero\Controller;
 
-use Dero\Core\BaseController;
 use Dero\Core\Config;
 use Dero\Core\Timing;
 use Dero\Data\Factory;

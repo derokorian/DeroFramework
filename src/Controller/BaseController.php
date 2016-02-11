@@ -1,6 +1,6 @@
 <?php
 
-namespace Dero\Core;
+namespace Dero\Controller;
 
 class BaseController
 {
