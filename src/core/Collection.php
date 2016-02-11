@@ -11,6 +11,7 @@ class Collection implements \Iterator,
 
     /**
      * Adds an item to the collection
+     *
      * @param mixed $item
      */
     public function add($item)
@@ -20,54 +21,60 @@ class Collection implements \Iterator,
 
     /**
      * (non-PHPDoc)
+     *
      * @see Iterator::current()
      */
-    public function current ()
+    public function current()
     {
         return $this->items[$this->index];
     }
 
     /**
      * (non-PHPDoc)
+     *
      * @see Iterator::key()
      */
-    public function key ()
+    public function key()
     {
         return $this->index;
     }
 
     /**
      * (non-PHPDoc)
+     *
      * @see Iterator::next()
      */
-    public function next ()
+    public function next()
     {
         ++$this->index;
     }
 
     /**
      * (non-PHPDoc)
+     *
      * @see Iterator::rewind()
      */
-    public function rewind ()
+    public function rewind()
     {
         $this->index = 0;
     }
 
     /**
      * (non-PHPDoc)
+     *
      * @see Iterator::valid()
      */
-    public function valid ()
+    public function valid()
     {
         return isset($this->items[$this->index]);
     }
 
     /**
      * (non-PHPDoc)
+     *
      * @see Countable::count()
      */
-    public function count ()
+    public function count()
     {
         return count($this->items);
     }

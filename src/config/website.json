@@ -4,7 +4,14 @@
   "style_url": "/styles/",
   "site_url": "/",
   "template": {
-    "extensions": ["phtml","php", "tpl", "html"],
-    "paths": ["dero/view"]
+    "extensions": [
+      "phtml",
+      "php",
+      "tpl",
+      "html"
+    ],
+    "paths": [
+      "dero/view"
+    ]
   }
 }

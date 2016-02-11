@@ -8,12 +8,12 @@ $aRoutes[] = [
     'controller'   => 'Dero\Controller\VersionController',
     'dependencies' => [],
     'method'       => 'upgrade',
-    'args'         => []
+    'args'         => [],
 ];
 $aRoutes[] = [
     'pattern'      => '#^upgrade$#i',
     'controller'   => 'Dero\Controller\VersionController',
     'dependencies' => [],
     'method'       => 'upgrade',
-    'args'         => []
+    'args'         => [],
 ];

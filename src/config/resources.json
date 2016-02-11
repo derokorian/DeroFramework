@@ -8,7 +8,9 @@
     {
       "name": "angular",
       "src": "//ajax.googleapis.com/ajax/libs/angularjs/1.2.14/angular.min.js",
-      "dep": ["jquery"]
+      "dep": [
+        "jquery"
+      ]
     }
   ],
   "styles": [

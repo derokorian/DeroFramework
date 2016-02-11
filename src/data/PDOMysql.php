@@ -2,19 +2,20 @@
 
 namespace Dero\Data;
 
-use PDO;
-use PDOException;
+use Dero\Core\Config;
 use Exception;
 use InvalidArgumentException;
+use PDO;
+use PDOException;
 use UnexpectedValueException;
-use Dero\Core\Config;
 
 /**
  * PDO wrapper for MySQL
- * @author Ryan Pallas
- * @package DeroFramework
+ *
+ * @author    Ryan Pallas
+ * @package   DeroFramework
  * @namespace Dero\Data
- * @see DataInterface
+ * @see       DataInterface
  */
 class PDOMysql implements DataInterface
 {
@@ -25,74 +26,78 @@ class PDOMysql implements DataInterface
     protected $sInstance;
     protected $oInstance;
 
-    public function __construct($Instance = NULL)
+    public function __construct($Instance = null)
     {
-        if( is_null($Instance) || !is_string($Instance) )
+        if (is_null($Instance) || !is_string($Instance)) {
             throw new InvalidArgumentException(__CLASS__ . ' requires an instance');
-        else
+        }
+        else {
             $this->sInstance = $Instance;
+        }
 
-        if( !extension_loaded('pdo_mysql') )
+        if (!extension_loaded('pdo_mysql')) {
             throw new Exception('PDO_MySQL is not loaded - please check the server\'s configuration');
+        }
     }
 
     /**
      * Opens a connection for a query
+     *
      * @param bool $bIsRead
+     *
      * @returns PDO
      * @throws UnexpectedValueException
      * @throws DataException
      */
     protected function OpenConnection($bIsRead)
     {
-        if( $this->oPDOStatement ) unset($this->oPDOStatement);
-        $sType = NULL;
-        if( !is_null(Config::GetValue('database', $this->sInstance, 'write')) &&
-            !is_null(Config::GetValue('database', $this->sInstance, 'read')))
-        {
-            if( $bIsRead )
-            {
-                if( $this->oInstance['read'] )
+        if ($this->oPDOStatement) {
+            unset($this->oPDOStatement);
+        }
+        $sType = null;
+        if (!is_null(Config::GetValue('database', $this->sInstance, 'write')) &&
+            !is_null(Config::GetValue('database', $this->sInstance, 'read'))
+        ) {
+            if ($bIsRead) {
+                if ($this->oInstance['read']) {
                     return $this->oInstance['read'];
+                }
                 $sType = 'read';
             }
-            else
-            {
-                if( $this->oInstance['write'] )
+            else {
+                if ($this->oInstance['write']) {
                     return $this->oInstance['write'];
+                }
                 $sType = 'write';
             }
         }
-        elseif( !is_null(Config::GetValue('database', $this->sInstance, 'read')))
-        {
-            if( $this->oInstance['read'] )
+        elseif (!is_null(Config::GetValue('database', $this->sInstance, 'read'))) {
+            if ($this->oInstance['read']) {
                 return $this->oInstance['read'];
+            }
             $sType = 'read';
         }
-        elseif( !is_null(Config::GetValue('database', $this->sInstance, 'write')))
-        {
-            if( $this->oInstance['write'] )
+        elseif (!is_null(Config::GetValue('database', $this->sInstance, 'write'))) {
+            if ($this->oInstance['write']) {
                 return $this->oInstance['write'];
+            }
             $sType = 'write';
         }
-        elseif( !is_null(Config::GetValue('database', $this->sInstance, 'name')))
-        {
-            if( isset($this->oInstance) )
+        elseif (!is_null(Config::GetValue('database', $this->sInstance, 'name'))) {
+            if (isset($this->oInstance)) {
                 return $this->oInstance;
+            }
         }
-        else
-        {
+        else {
             throw new UnexpectedValueException('Database connection information not properly defined');
         }
-        if( is_null($sType) )
-        {
-            $aOpts['Name'] = Config::GetValue('database', $this->sInstance,'name');
-            $aOpts['Host'] = Config::GetValue('database', $this->sInstance,'host');
-            $aOpts['User'] = Config::GetValue('database', $this->sInstance,'user');
-            $aOpts['Pass'] = Config::GetValue('database', $this->sInstance,'pass');
-            $aOpts['Port'] = Config::GetValue('database', $this->sInstance,'port') ?: 3306;
-            if( in_array(null, $aOpts) )
-            {
+        if (is_null($sType)) {
+            $aOpts['Name'] = Config::GetValue('database', $this->sInstance, 'name');
+            $aOpts['Host'] = Config::GetValue('database', $this->sInstance, 'host');
+            $aOpts['User'] = Config::GetValue('database', $this->sInstance, 'user');
+            $aOpts['Pass'] = Config::GetValue('database', $this->sInstance, 'pass');
+            $aOpts['Port'] = Config::GetValue('database', $this->sInstance, 'port') ?: 3306;
+            if (in_array(null, $aOpts)) {
                 throw new UnexpectedValueException('Database connection information not properly defined');
             }
             try {
@@ -106,20 +111,19 @@ class PDOMysql implements DataInterface
                     $aOpts['User'],
                     $aOpts['Pass']
                 );
+
                 return $this->oInstance;
             } catch (PDOException $e) {
                 throw new DataException("Unable to open database connection\n" . var_export($aOpts, true), 0, $e);
             }
         }
-        else
-        {
+        else {
             $aOpts['Name'] = Config::GetValue('database', $this->sInstance, $sType, 'name');
             $aOpts['Host'] = Config::GetValue('database', $this->sInstance, $sType, 'host');
             $aOpts['User'] = Config::GetValue('database', $this->sInstance, $sType, 'user');
             $aOpts['Pass'] = Config::GetValue('database', $this->sInstance, $sType, 'pass');
             $aOpts['Port'] = Config::GetValue('database', $this->sInstance, $sType, 'port') ?: 3306;
-            if( in_array(null, $aOpts) )
-            {
+            if (in_array(null, $aOpts)) {
                 throw new UnexpectedValueException('Database connection information not properly defined');
             }
             try {
@@ -133,6 +137,7 @@ class PDOMysql implements DataInterface
                     $aOpts['User'],
                     $aOpts['Pass']
                 );
+
                 return $this->oInstance[$sType];
             } catch (PDOException $e) {
                 throw new DataException("Unable to open database connection\n" . var_export($aOpts, true), 0, $e);
@@ -142,127 +147,135 @@ class PDOMysql implements DataInterface
 
     /**
      * (non-PHPdoc)
+     *
      * @param string $Query
+     *
      * @return PDOMysql allows method chaining
      * @throws DataException
      */
     public function Prepare($Query)
     {
-        $Query = preg_replace(["/[\r\n]+/",'/\s+/'], " ", $Query);
+        $Query = preg_replace(["/[\r\n]+/", '/\s+/'], " ", $Query);
         static::LogQuery($Query);
         $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
-        try
-        {
+        try {
             $this->oPDOStatement = $oCon->prepare($Query);
-            if( $this->oPDOStatement === FALSE )
-            {
+            if ($this->oPDOStatement === false) {
                 $e = $oCon->errorInfo();
-                throw new DataException('Error preparing query in '. __CLASS__ . '::'
-                    . __FUNCTION__ . '(' . $e[2] . ')');
+                throw new DataException('Error preparing query in ' . __CLASS__ . '::'
+                                        . __FUNCTION__ . '(' . $e[2] . ')');
             }
+
             return $this;
-        }
-        catch (Exception $e)
-        {
-            throw new DataException('Error preparing query in '. __CLASS__ . '::' . __FUNCTION__, 0, $e);
+        } catch (Exception $e) {
+            throw new DataException('Error preparing query in ' . __CLASS__ . '::' . __FUNCTION__, 0, $e);
         }
 
     }
 
     /**
      * (non-PHPdoc)
+     *
      * @param string $Query
+     *
      * @return PDOMysql allows method chaining
      * @throws DataException
      */
     public function Query($Query)
     {
-        $Query = preg_replace(["/[\r\n]+/",'/\s+/'], " ", $Query);
+        $Query = preg_replace(["/[\r\n]+/", '/\s+/'], " ", $Query);
         static::LogQuery($Query);
         $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
-        try
-        {
+        try {
             $this->oPDOStatement = $oCon->query($Query);
-            if( $this->oPDOStatement === FALSE )
-            {
+            if ($this->oPDOStatement === false) {
                 $e = $oCon->errorInfo();
-                throw new DataException('Error running query in '. __CLASS__ . '::'
-                    . __FUNCTION__ . '(' . $e[2] . ')');
+                throw new DataException('Error running query in ' . __CLASS__ . '::'
+                                        . __FUNCTION__ . '(' . $e[2] . ')');
             }
+
             return $this;
-        }
-        catch (Exception $e)
-        {
-            throw new DataException('Error running query in '. __CLASS__ . '::' . __FUNCTION__, 0, $e);
+        } catch (Exception $e) {
+            throw new DataException('Error running query in ' . __CLASS__ . '::' . __FUNCTION__, 0, $e);
         }
     }
 
     protected static function LogQuery($strQuery)
     {
         static $i = 0;
-        if( !IS_DEBUG )
+        if (!IS_DEBUG) {
             return;
+        }
 
-        if( PHP_SAPI == 'cli' )
-        {
+        if (PHP_SAPI == 'cli') {
             file_put_contents(
-                '/tmp/query-'.date('ymdhm').'.log',
+                '/tmp/query-' . date('ymdhm') . '.log',
                 sprintf("query(%d): %s\n", $i++, $strQuery),
                 FILE_APPEND
             );
         }
-        else
-        {
+        else {
             header(sprintf('X-Query(%d): %s', $i++, $strQuery));
         }
     }
 
     /**
      * (non-PHPdoc)
+     *
      * @see DataInterface::BindParams()
+     *
      * @param ParameterCollection $Params
+     *
      * @return PDOMysql allows method chaining
      * @throws DataException
      */
     public function BindParams(ParameterCollection $Params)
     {
-        foreach( $Params as $Param )
-        {
-            if( $Param instanceof Parameter)
-            {
+        foreach ($Params as $Param) {
+            if ($Param instanceof Parameter) {
                 $this->BindParam($Param);
             }
         }
+
         return $this;
     }
 
     /**
      * (non-PHPdoc)
+     *
      * @see DataInterface::BindParam()
+     *
      * @param Parameter $Param
+     *
      * @return PDOMysql allows method chaining
      * @throws DataException
      */
     public function BindParam(Parameter $Param)
     {
-        if(! $this->oPDOStatement ) return $this;
+        if (!$this->oPDOStatement) {
+            return $this;
+        }
         try {
             $this->oPDOStatement->bindValue($Param->Name, $Param->Value, $Param->Type);
+
             return $this;
-        } catch(Exception $e) {
-            throw new DataException('unable to bind parameter '. $e->getMessage());
+        } catch (Exception $e) {
+            throw new DataException('unable to bind parameter ' . $e->getMessage());
         }
     }
 
     /**
      * (non-PHPdoc)
+     *
      * @see DataInterface::Execute()
      * @return PDOMysql allows method chaining
      * @throws DataException
      */
     public function Execute()
     {
-        if(! $this->oPDOStatement ) return $this;
+        if (!$this->oPDOStatement) {
+            return $this;
+        }
         try {
             if (!$this->oPDOStatement->execute()) {
                 $aErr = $this->oPDOStatement->errorInfo();
@@ -272,42 +285,55 @@ class PDOMysql implements DataInterface
                         break;
                 }
             }
+
             return $this;
-        } catch( PDOException $e) {
-            throw new DataException('Error executing query in '. __CLASS__ .'::'. __FUNCTION__, 0, $e);
+        } catch (PDOException $e) {
+            throw new DataException('Error executing query in ' . __CLASS__ . '::' . __FUNCTION__, 0, $e);
         }
     }
 
     /**
      * (non-PHPdoc)
+     *
      * @see DataInterface::GetRow()
      * @return \StdClass object with properties mapped to selected columns
      */
     public function Get()
     {
-        if(! $this->oPDOStatement ) return FALSE;
+        if (!$this->oPDOStatement) {
+            return false;
+        }
+
         return $this->oPDOStatement->fetch(PDO::FETCH_OBJ);
     }
 
     /**
      * (non-PHPdoc)
+     *
      * @see DataInterface::GetAll()
      * @return Array(StandardObject) array of objects with properties mapped to selected columns
      */
     public function GetAll()
     {
-        if(! $this->oPDOStatement ) return FALSE;
+        if (!$this->oPDOStatement) {
+            return false;
+        }
+
         return $this->oPDOStatement->fetchAll(PDO::FETCH_OBJ);
     }
 
     /**
      * (non-PHPdoc)
+     *
      * @see DataInterface::GetScalar()
      * @return mixed
      */
     public function GetScalar()
     {
-        if(! $this->oPDOStatement ) return FALSE;
+        if (!$this->oPDOStatement) {
+            return false;
+        }
+
         return $this->oPDOStatement->fetch(PDO::FETCH_NUM)[0];
     }
 }
