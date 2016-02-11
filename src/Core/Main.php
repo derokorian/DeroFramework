@@ -186,7 +186,7 @@ class Main
         return $mRet;
     }
 
-    protected static function initErros()
+    protected static function initErrors()
     {
         if (IS_DEBUG) {
             ini_set('error_reporting', E_ALL);
