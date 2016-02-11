@@ -26,7 +26,7 @@ class Config
      */
     public static function GetValue(...$args)
     {
-        if (func_num_args() > 0) {
+        if (count($args) > 0) {
             self::LoadConfig($args[0]);
             $last = self::$Config;
             foreach ($args as $arg) {
@@ -121,4 +121,3 @@ function jsonc_decode($strJson, $bAssoc = false, $iDepth = 512, $iOptions = 0)
     return json_decode($strJson, $bAssoc, $iDepth, $iOptions);
 }
 
-?>

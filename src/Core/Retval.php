@@ -2,33 +2,72 @@
 
 namespace Dero\Core;
 
+/**
+ * Class Retval
+ *
+ * A single return value type that can be used to return multiple
+ *   error conditions or a singular return type. Simply put, an
+ *   easier way to handle a function with both successful return
+ *   values and a multiple types of error conditions (such as a
+ *   model which may not have a db connection, bad sql, or a
+ *   validation function, which might return multiple things as
+ *   wrong).
+ *
+ * @package Dero\Core
+ */
 class Retval
 {
     private $mRetval = null;
     private $strError = [];
     private $oException = [];
 
+    /**
+     * Sets the return value
+     *
+     * @param $mVal
+     */
     public function Set($mVal)
     {
         $this->mRetval = $mVal;
     }
 
+    /**
+     * Gets the return value
+     *
+     * @return null
+     */
     public function Get()
     {
         return $this->mRetval;
     }
 
+    /**
+     * Adds an error condition
+     *
+     * @param                 $strMessage
+     * @param \Exception|null $oException
+     */
     public function AddError($strMessage, \Exception $oException = null)
     {
         $this->strError[] = $strMessage;
         $this->oException[] = $oException;
     }
 
+    /**
+     * Check if the return value has an error condition
+     *
+     * @return bool
+     */
     public function HasFailure()
     {
         return count($this->strError) > 0;
     }
 
+    /**
+     * Gets the error(s) on the return value
+     *
+     * @return array|null
+     */
     public function GetError()
     {
         return count($this->strError) == 0 ? null :
@@ -36,6 +75,11 @@ class Retval
                 $this->strError);
     }
 
+    /**
+     * Gets the exception(s) on the return value
+     *
+     * @return array|null
+     */
     public function GetException()
     {
         return count($this->oException) == 0 ? null :

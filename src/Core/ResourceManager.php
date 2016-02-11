@@ -23,7 +23,7 @@ class ResourceManager
      *
      * @param $filename
      */
-    public static function AddScript($filename)
+    public static function AddScript(string $filename)
     {
         // Load scripts from configuration
         if (count(static::$KNOWN_SCRIPTS) == 0) {
@@ -40,7 +40,13 @@ class ResourceManager
         );
     }
 
-    private static function addResource($filename, $ext, $path, $url, $known, &$target)
+    private static function addResource(
+        string $filename,
+        string $ext,
+        string $path,
+        string $url,
+        array $known,
+        array &$target)
     {
         // Check if requesting a configured resource
         if (($k = array_search($filename, array_column($known, 'name'))) !== false) {
@@ -74,7 +80,7 @@ class ResourceManager
         }
     }
 
-    private static function genSrc($strSrc, $strBaseUrl)
+    private static function genSrc(string $strSrc, string $strBaseUrl) : string
     {
         if (substr($strSrc, 0, 2) == '//') {
             return $strSrc;
@@ -88,7 +94,7 @@ class ResourceManager
      *
      * @param $filename
      */
-    public static function AddStyle($filename)
+    public static function AddStyle(string $filename)
     {
         if (count(static::$KNOWN_STYLES) == 0) {
             static::$KNOWN_STYLES = Config::GetValue('resources', 'styles');
@@ -109,7 +115,7 @@ class ResourceManager
      *
      * @return mixed
      */
-    public static function LoadScripts()
+    public static function LoadScripts() : string
     {
         return TemplateEngine::LoadView('scripts', ['scripts' => self::$scripts]);
     }
@@ -119,8 +125,8 @@ class ResourceManager
      *
      * @return mixed
      */
-    public static function LoadStyles()
+    public static function LoadStyles() : string
     {
         return TemplateEngine::LoadView('styles', ['styles' => static::$styles]);
     }
-} 
+}

@@ -3,9 +3,7 @@
 namespace Dero\Data;
 
 /**
- * Different exception types for the data layer
- *
- * @author Ryan Pallas
+ * Internal exception around data interaction problems
  */
 class DataException extends \Exception
 {

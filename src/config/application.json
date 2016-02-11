@@ -1,5 +1,8 @@
 {
   "paths": {
-    "data_files": []
+    "data_files": [],
+    "routes": [
+      "dero/routes/*.php"
+    ]
   }
 }

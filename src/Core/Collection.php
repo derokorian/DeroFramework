@@ -2,7 +2,19 @@
 
 namespace Dero\Core;
 
-
+/**
+ * Class Collection
+ *
+ * @todo    In PHP7.1 convert to generics when they exist
+ *    Collection<Type>
+ *        ::add(<Type> $item)
+ *        ::current() : <Type>
+ *   Which will highly improve how this class works
+ *     for type-hinting and remove the need to for
+ *     sub-classing as we're currently doing
+ *
+ * @package Dero\Core
+ */
 class Collection implements \Iterator,
                             \Countable
 {
@@ -34,7 +46,7 @@ class Collection implements \Iterator,
      *
      * @see Iterator::key()
      */
-    public function key()
+    public function key() : int
     {
         return $this->index;
     }
@@ -64,7 +76,7 @@ class Collection implements \Iterator,
      *
      * @see Iterator::valid()
      */
-    public function valid()
+    public function valid() : bool
     {
         return isset($this->items[$this->index]);
     }
@@ -74,8 +86,8 @@ class Collection implements \Iterator,
      *
      * @see Countable::count()
      */
-    public function count()
+    public function count() : int
     {
         return count($this->items);
     }
-} 
+}

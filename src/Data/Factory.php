@@ -20,7 +20,7 @@ class Factory
      *
      * @return DataInterface
      */
-    public static function GetDataInterface($InstanceName)
+    public static function GetDataInterface(string $InstanceName) : DataInterface
     {
         return new PDOMysql($InstanceName);
     }

@@ -29,9 +29,7 @@ class Parameter
     {
         $this->SetName($Name);
         $this->SetValue($Value);
-        if (!is_null($Type)) {
-            $this->SetType($Type);
-        }
+        $this->SetType($Type);
     }
 
     public function __get($name)
@@ -56,7 +54,7 @@ class Parameter
      * @throws \UnexpectedValueException
      * @return string
      */
-    public function GetName()
+    public function GetName() : string
     {
         return ':' . $this->Name;
     }
@@ -69,10 +67,10 @@ class Parameter
      * @throws \InvalidArgumentException
      * @return void
      */
-    public function SetName($Name)
+    public function SetName(string $Name)
     {
-        if (empty($Name) || !is_string($Name)) {
-            throw new \InvalidArgumentException('name of parameters must be a string');
+        if (empty($Name)) {
+            throw new \InvalidArgumentException('name of parameters must not be empty');
         }
         $this->Name = $Name;
     }
@@ -154,4 +152,3 @@ class Parameter
 
 }
 
-?>

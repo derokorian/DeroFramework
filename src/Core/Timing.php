@@ -13,19 +13,19 @@ class Timing
     {
     }
 
-    public static function start($strTime)
+    public static function start(string $strTime)
     {
         self::$aTimes[$strTime] = microtime(true) * 1000;
     }
 
-    public static function end($strTime)
+    public static function end(string $strTime)
     {
         if (isset(self::$aTimes[$strTime])) {
             self::$aTimes[$strTime] = round(microtime(true) * 1000 - self::$aTimes[$strTime], 2);
         }
     }
 
-    public static function getTimings()
+    public static function getTimings() : array
     {
         return self::$aTimes;
     }

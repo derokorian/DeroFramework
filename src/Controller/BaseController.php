@@ -2,6 +2,8 @@
 
 namespace Dero\Controller;
 
+use Dero\Core\int;
+
 class BaseController
 {
     /**
@@ -35,7 +37,7 @@ class BaseController
      *
      * @param int $iCode The response code to use
      */
-    final protected function responseStatus($iCode)
+    final protected function responseStatus(int $iCode)
     {
         $str = $_SERVER['SERVER_PROTOCOL'] . " $iCode ";
         switch ($iCode) {

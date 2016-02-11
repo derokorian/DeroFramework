@@ -2,6 +2,7 @@
 
 namespace Dero\Data;
 
+use Dero\Core\Config;
 use Dero\Core\Retval;
 
 /**
@@ -13,14 +14,18 @@ abstract class BaseModel
 {
     /** @var string */
     const TABLE_NAME = '';
+
     /** @var array */
     const COLUMNS = [];
+
     /** @var array */
     const SUB_OBJECTS = [];
+
     /** @const Used in queries that do a group concatenation */
     const CONCAT_SEPARATOR = 0x1D;
     const UNIQUE_CONSTRAINT_VIOLATION = 1062;
     const TABLE_CREATED = 'Table successfully created';
+
     /** @var DataInterface */
     protected $DB;
 
@@ -38,18 +43,16 @@ abstract class BaseModel
     }
 
     /**
-     * Gets data from a table
-     *
-     * @param array  $aOpts
-     * @param string $sTable
+     * @param array       $aOpts
+     * @param string|null $sTable
      *
      * @return Retval
      */
-    public function Get(array $aOpts = [], $sTable = null)
+    public function Get(array $aOpts = [], string $sTable = '') : Retval
     {
         $oRet = new Retval();
         $aCols = $this->getColsFromTable($sTable);
-        if (!is_array($aCols)) {
+        if (empty($aCols)) {
             // Uh oh, object name provided is not valid, return an error
             $oRet->AddError(sprintf(
                                 'Unrecognized table provided to ' . get_called_class() . '::' . __FUNCTION__ . "($sTable)"
@@ -79,14 +82,16 @@ abstract class BaseModel
                             break;
                         // other types are strings, no cast required
                     }
-
-                    return $oItem;
                 }
+
+                return $oItem;
             }, $this->DB
                    ->Prepare($sSql)
                    ->BindParams($oParams)
                    ->Execute()
-                   ->GetAll()));
+                   ->GetAll(
+                       substr(static::class, 0, strrpos(static::class, '\\') + 1) . $sTable
+                   )));
         } catch (DataException $e) {
             $oRet->AddError('Unable to query database', $e);
         }
@@ -95,11 +100,11 @@ abstract class BaseModel
     }
 
     /**
-     * @param $sTable
+     * @param string $sTable
      *
-     * @return array|null
+     * @return mixed
      */
-    protected function getColsFromTable(&$sTable)
+    protected function getColsFromTable(string &$sTable = null) : array
     {
         if (empty($sTable)) {
             $sTable = static::TABLE_NAME;
@@ -113,7 +118,7 @@ abstract class BaseModel
             }
         }
 
-        return null;
+        return [];
     }
 
     /**
@@ -129,9 +134,8 @@ abstract class BaseModel
     protected function GenerateCriteria(
         ParameterCollection &$oParams,
         Array $aOpts,
-        $strColPrefix = '',
-        array $aColumns = null
-    )
+        string $strColPrefix = '',
+        array $aColumns = null) : string
     {
         $this->where(true);
         $sql = '';
@@ -139,7 +143,7 @@ abstract class BaseModel
         foreach ($aColumns as $name => $def) {
             if (isset($aOpts[$name])) {
                 $type = $this->getParamTypeFromColType($aOpts[$name], $def);
-                if ($type === DB_PARAM_NULL && $aOpts[$name] === null) {
+                if ($type === DB_PARAM_NULL) {
                     $sql .= sprintf('%s %s%s IS NULL ',
                                     $this->where(),
                                     $strColPrefix,
@@ -147,10 +151,21 @@ abstract class BaseModel
                     );
                 }
                 elseif (is_array($aOpts[$name])) {
-                    // TODO: Generate IN clause
+                    $i = 0;
+                    $names = [];
+                    foreach ($aOpts[$name] as $val) {
+                        $oParams->Add(new Parameter($name . $i, $val, $type));
+                        $names[] = $name . $i++;
+                    }
+                    $sql .= sprintf('%s %s%s IN (:%s) ',
+                                    $this->where(),
+                                    $strColPrefix,
+                                    $name,
+                                    implode(',:', $names)
+                    );
                 }
                 else {
-                    $sql .= sprintf('%s %s%s=:%s ',
+                    $sql .= sprintf('%s %s%s = :%s ',
                                     $this->where(),
                                     $strColPrefix,
                                     $name,
@@ -211,15 +226,15 @@ abstract class BaseModel
      *
      * @param bool $bReset True to return where on next call
      *
-     * @return void|string
+     * @return string
      */
-    private function where($bReset = false)
+    private function where(bool $bReset = false) : string
     {
         static $bWhere;
         if ($bReset) {
             $bWhere = false;
 
-            return null;
+            return '';
         }
         if ($bWhere === false) {
             $bWhere = true;
@@ -241,40 +256,33 @@ abstract class BaseModel
      */
     private function getParamTypeFromColType($val, $def)
     {
-        $return = null;
-        if (isset($def['nullable']) && $def['nullable'] && is_bool($val)) {
-            $return = DB_PARAM_NULL;
+        if (isset($def['nullable']) && $def['nullable'] && $val === null) {
+            return DB_PARAM_NULL;
         }
         elseif (isset($def[COL_TYPE])) {
             if ($def[COL_TYPE] == COL_TYPE_BOOLEAN) {
-                $return = DB_PARAM_BOOL;
+                return DB_PARAM_BOOL;
             }
             elseif ($def[COL_TYPE] == COL_TYPE_INTEGER) {
-                $return = DB_PARAM_INT;
+                return DB_PARAM_INT;
             }
             elseif ($def[COL_TYPE] == COL_TYPE_DECIMAL) {
-                $return = DB_PARAM_DEC;
+                return DB_PARAM_DEC;
             }
             else {
-                $return = DB_PARAM_STR;
+                return DB_PARAM_STR;
             }
         }
-        if ($return === null) {
-            throw new \UnexpectedValueException('Unknown column definition');
-        }
-
-        return $return;
+        throw new \UnexpectedValueException('Unknown column definition');
     }
 
     /**
-     * Inserts a new row into the root object, or a sub-object as specified
-     *
      * @param $oObj
      * @param $sTable
      *
      * @return Retval
      */
-    public function Insert(&$oObj, $sTable = null)
+    public function Insert(&$oObj, string $sTable = null) : Retval
     {
         $aCols = $this->getColsFromTable($sTable);
         if (!is_array($aCols)) {
@@ -323,7 +331,7 @@ abstract class BaseModel
         if (!$oRet->HasFailure()) {
             $sIdField = 'id';
             foreach ($aCols as $sColName => $aCol) {
-                if ($aCol[KEY_TYPE] == KEY_TYPE_PRIMARY) {
+                if (!empty($aCol[KEY_TYPE]) && $aCol[KEY_TYPE] == KEY_TYPE_PRIMARY) {
                     $sIdField = $sColName;
                     break;
                 }
@@ -345,8 +353,7 @@ abstract class BaseModel
      */
     public function Validate(
         $oObj,
-        array $aColumns = null
-    )
+        array $aColumns = null) : Retval
     {
         $aVars = (array) $oObj;
         $oRetval = new Retval();
@@ -427,9 +434,8 @@ abstract class BaseModel
     protected function GenerateInsert(
         ParameterCollection &$oParams,
         $oObj,
-        $strTable = null,
-        array $aColumns = null
-    )
+        string $strTable = null,
+        array $aColumns = null) : string
     {
         $aCols = [];
         $aVals = [];
@@ -467,7 +473,7 @@ abstract class BaseModel
      *
      * @return Retval
      */
-    public function Update(&$oObj, $sTable = null)
+    public function Update(&$oObj, string $sTable = null) : Retval
     {
         $aCols = $this->getColsFromTable($sTable);
         if (!is_array($aCols)) {
@@ -519,9 +525,8 @@ abstract class BaseModel
     protected function GenerateUpdate(
         ParameterCollection &$oParams,
         $oObj,
-        $strTable = null,
-        array $aColumns = null
-    )
+        string $strTable = null,
+        array $aColumns = null) : string
     {
         $strRet = sprintf(
             'UPDATE `%s` SET ',
@@ -589,15 +594,14 @@ abstract class BaseModel
     /**
      * Verifies the current tables definition and updates if necessary
      *
-     * @param null  $sTable
-     * @param array $aColumns
+     * @param string $sTable
+     * @param array  $aColumns
      *
      * @return Retval
      */
     private function verifyTableDefinition(
-        $sTable = null,
-        array $aColumns = null
-    )
+        string $sTable = null,
+        array $aColumns = null) : Retval
     {
         $sTable = $sTable ?: static::TABLE_NAME;
         $aColumns = $aColumns ?: static::COLUMNS;
@@ -729,12 +733,13 @@ abstract class BaseModel
                         $bColWrong = true;
                     }
 
-                    $def = preg_grep('/^default.*$/i', $aCol[DB_EXTRA]);
-                    if (count($def) > 0) {
-                        if ($aColMatch['Default'] != $def[0]) {
-                            $bColWrong = true;
-                        }
-                    }
+                    // TODO: this doesn't work right, rethink model defaults
+                    //                    $def = preg_grep('/^default(.*)$/i', $aCol[DB_EXTRA]);
+                    //                    if (count($def) > 0) {
+                    //                        if ($aColMatch['Default'] != trim($def[0])) {
+                    //                            $bColWrong = true;
+                    //                        }
+                    //                    }
                 }
                 else {
                     if ($aColMatch['Null'] != 'NO') {
@@ -775,6 +780,26 @@ abstract class BaseModel
             }
             unset($strCol, $aCol);
         }
+        if (Config::GetValue('database', 'drop_old_columns')) {
+            foreach ($aTableCols as $strCol => $aCol) {
+                if (!isset($aColumns[$strCol])) {
+
+                    $aRet[] = "Dropping column $sTable.$strCol";
+                    $strUpdate .= "\nDROP COLUMN `$strCol`,";
+                    $sKeyRet = $this->DB->Query(<<<EOF
+SELECT CONSTRAINT_NAME
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+WHERE TABLE_NAME =  '$sTable'
+AND COLUMN_NAME =  '$strCol'
+EOF
+                    )
+                                        ->GetScalar();
+                    if (!empty($sKeyRet)) {
+                        $strUpdate .= "\nDROP FOREIGN KEY `$sKeyRet`,";
+                    }
+                }
+            }
+        }
         $strUpdate = substr($strUpdate, 0, -1);
         if (count($aRet) > 0) {
             try {
@@ -794,15 +819,14 @@ abstract class BaseModel
     }
 
     /**
-     * @param null       $sTable
+     * @param string     $sTable
      * @param array|null $aColumns
      *
      * @return Retval
      */
     private function verifyTableExistence(
-        $sTable = null,
-        array $aColumns = null
-    )
+        string $sTable = null,
+        array $aColumns = null) : Retval
     {
         $oRetval = new Retval();
         $strSql = sprintf("SHOW TABLES LIKE '%s'", $sTable ?: static::TABLE_NAME);
@@ -837,21 +861,20 @@ abstract class BaseModel
     /**
      * Generates the SQL to create table defined by class properties
      *
-     * @param null  $sTable
-     * @param array $aColumns
+     * @param string $sTable
+     * @param array  $aColumns
      *
-     * @return null|string
+     * @return string
      * @throws \UnexpectedValueException
      */
     protected function GenerateCreateTable(
-        $sTable = null,
-        array $aColumns = null
-    )
+        string $sTable = null,
+        array $aColumns = null) : string
     {
         if (strlen($sTable ?: static::TABLE_NAME) == 0
             || count($aColumns ?: static::COLUMNS) == 0
         ) {
-            return null;
+            return '';
         }
 
         $aCols = [];
@@ -860,7 +883,7 @@ abstract class BaseModel
         }
 
         return sprintf(
-            "CREATE TABLE IF NOT EXISTS `%s` (%s\n) Engine=InnoDB",
+            "CREATE TABLE IF NOT EXISTS `%s` (%s\n) ENGINE=InnoDB",
             $sTable ?: static::TABLE_NAME,
             implode(',', $aCols)
         );
@@ -872,7 +895,7 @@ abstract class BaseModel
      *
      * @return string
      */
-    private function getColumnSqlFromDefinition($sCol, $aCol)
+    private function getColumnSqlFromDefinition(string $sCol, array $aCol) : string
     {
         $sType = '';
         $sKey = '';

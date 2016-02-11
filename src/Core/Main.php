@@ -10,65 +10,44 @@
 
 namespace Dero\Core;
 
+use Dero\Controller\BaseController;
+
 class Main
 {
-    protected static $sRoute;
-
+    /**
+     * Initializes and runs the app for the current request
+     */
     public static function run()
     {
         static::init();
         $aRoute = static::findRoute();
-        $mRet = !empty($aRoute) ? static::loadRoute($aRoute) : null;
-
-        if (is_scalar($mRet)) {
-            echo $mRet;
-        }
-        elseif (!is_null($mRet)) {
-            $mRet = json_encode($mRet);
-            header('Content-Type: application/json');
-            header('Content-Length: ' . strlen($mRet));
-            echo $mRet;
+        if (!empty($aRoute)) {
+            static::loadRoute($aRoute);
         }
     }
 
     /**
      * Initializes and runs the application
-     *
-     * @codeCoverageIgnore
      */
-    public static function init()
+    protected static function init()
     {
-        define('IS_DEBUG', !empty(getenv('PHP_DEBUG')) || !empty($_GET['debug']));
+        static::initSettings();
+        static::initErrors();
+        static::initSession();
 
         if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' &&
             isset($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'application/json') === 0
         ) {
             $_POST = json_decode(file_get_contents('php://input'), true);
         }
-
-        static::loadSettings();
-        static::initErrors();
-        static::initSession();
-
-        if (PHP_SAPI === 'cli') {
-            static::$sRoute = !empty($GLOBALS["argv"][1]) ? $GLOBALS["argv"][1] : '';
-            define('IS_API_REQUEST', false);
-        }
-        else {
-            static::$sRoute = trim($_GET['REQUEST'], '/');
-            if (substr(static::$sRoute, 0, 3) == 'api') {
-                define('IS_API_REQUEST', true);
-                static::$sRoute = substr(static::$sRoute, 4);
-            }
-            else {
-                define('IS_API_REQUEST', false);
-            }
-        }
     }
 
-    protected static function loadSettings()
+    /**
+     * Loads application settings, usually files that define constants
+     */
+    protected static function initSettings()
     {
-        $files = glob(ROOT . '/dero/settings/*.php');
+        $files = glob(dirname(__DIR__) . '/settings/*.php');
         foreach ($files as $file) {
             if (is_readable($file) && is_file($file)) {
                 require_once $file;
@@ -76,6 +55,27 @@ class Main
         }
     }
 
+    /**
+     * Sets the application error settings
+     */
+    protected static function initErrors()
+    {
+        if (IS_DEBUG) {
+            ini_set('error_reporting', E_ALL);
+            ini_set('display_errors', true);
+            ini_set('log_errors', false);
+        }
+        else {
+            ini_set('error_reporting', E_WARNING);
+            ini_set('display_errors', false);
+            ini_set('log_errors', true);
+            ini_set('error_log', dirname(__DIR__) . '/logs/' . date('Y-m-d') . '-error.log');
+        }
+    }
+
+    /**
+     * Initializes a session for this request
+     */
     protected static function initSession()
     {
         session_name(Config::GetValue('security', 'sessions', 'name'));
@@ -92,15 +92,21 @@ class Main
     /**
      * Loads the controllers and models necessary to complete the given route request
      *
-     * @codeCoverageIgnore
+     * @param string $sRouteURI
+     *
+     * @return array
      */
-    private static function findRoute()
+    public static function findRoute(string $sRouteURI = null) : array
     {
+        $strURI = $sRouteURI ?? static::getRouteURI();
+        $aRoutes = static::getDefinedRoutes();
+
         // Attempt to find the requested route
-        foreach (static::getDefinedRoutes() as $aRoute) {
+        foreach ($aRoutes as $aRoute) {
             if (!empty($aRoute['pattern'])
-                && preg_match($aRoute['pattern'], static::$sRoute, $match)
+                && preg_match($aRoute['pattern'], $strURI, $match)
             ) {
+                $aRoute['Request'] = $strURI;
                 $aRoute['Match'] = $match;
                 if (!class_exists($aRoute['controller']) ||
                     !method_exists(
@@ -126,25 +132,82 @@ class Main
         return [];
     }
 
-    private static function getDefinedRoutes()
+    /**
+     * Gets the requested route path based on the request type
+     *
+     * @return string
+     */
+    protected static function getRouteURI() : string
     {
-        $aRoutes = [];
-        $files = glob(ROOT . '/dero/routes/*.php');
-        foreach ($files as $file) {
-            is_readable($file) && include_once $file;
+        if (PHP_SAPI === 'cli') {
+            define('IS_API_REQUEST', false);
+
+            return !empty($GLOBALS["argv"][1]) ? $GLOBALS["argv"][1] : '';
         }
-        $files = glob(ROOT . '/app/routes/*.php');
-        foreach ($files as $file) {
-            is_readable($file) && include_once $file;
+        else {
+            $strURI = trim($_GET['REQUEST'], '/');
+            if (substr($strURI, 0, 3) == 'api') {
+                define('IS_API_REQUEST', true);
+
+                return substr($strURI, 4);
+            }
+            else {
+                define('IS_API_REQUEST', false);
+
+                return $strURI;
+            }
+        }
+    }
+
+    /**
+     * Gets the applications defined routes
+     *
+     * @return array
+     */
+    protected static function getDefinedRoutes() : array
+    {
+        static $aRoutes = [];
+
+        if (empty($aRoutes)) {
+            foreach (Config::GetValue('application', 'paths', 'routes') as $path) {
+                foreach (glob(ROOT . DS . $path) as $file) {
+                    is_readable($file) && include_once $file;
+                }
+            }
         }
 
         return $aRoutes;
     }
 
-    protected static function loadRoute(array $aRoute)
+    /**
+     * Loads a given route
+     *
+     * @param array $aRoute
+     */
+    public static function loadRoute(array $aRoute)
+    {
+        $oController = static::getController($aRoute);
+        $sMethod = static::getMethod($aRoute);
+        $aArgs = static::getArgs($aRoute);
+
+        Timing::start('controller');
+        $mRet = $oController->{$sMethod}(...$aArgs);
+        Timing::end('controller');
+
+        static::handleResult($mRet);
+    }
+
+    /**
+     * Gets a controller object from the given route definition
+     *
+     * @param array $aRoute
+     *
+     * @return BaseController
+     */
+    protected static function getController(array $aRoute) : BaseController
     {
         if (empty($aRoute['dependencies'])) {
-            $oController = new $aRoute['controller']();
+            return new $aRoute['controller']();
         }
         else {
             $aDeps = [];
@@ -153,51 +216,69 @@ class Main
                     $aDeps[] = new $strDependency();
                 }
             }
-            $oController = new $aRoute['controller'](...$aDeps);
-        }
 
-        if (is_numeric($aRoute['method'])) {
-            $method = $aRoute['Match'][$aRoute['method']];
+            return new $aRoute['controller'](...$aDeps);
         }
-        else {
-            $method = $aRoute['method'];
-        }
-
-        Timing::start('controller');
-        if (empty($aRoute['args']) || !isset($aRoute['Match'][$aRoute['args'][0]])) {
-            $mRet = $oController->{$method}();
-        }
-        else {
-            if (count($aRoute['args']) > 1) {
-                $args = [];
-                foreach ($aRoute['args'] as $arg) {
-                    if (isset($aRoute['Match'][$arg])) {
-                        $args[] = $aRoute['Match'][$arg];
-                    }
-                }
-                $mRet = $oController->{$method}(...$args);
-            }
-            else {
-                $mRet = $oController->{$method}($aRoute['Match'][$aRoute['args'][0]]);
-            }
-        }
-        Timing::end('controller');
-
-        return $mRet;
     }
 
-    protected static function initErrors()
+    /**
+     * Gets the method to call from the given route definition
+     *
+     * @param array $aRoute
+     *
+     * @return string
+     */
+    protected static function getMethod(array $aRoute) : string
     {
-        if (IS_DEBUG) {
-            ini_set('error_reporting', E_ALL);
-            ini_set('display_errors', true);
-            ini_set('log_errors', false);
+        if (is_numeric($aRoute['method'])) {
+            return $aRoute['Match'][$aRoute['method']];
         }
         else {
-            ini_set('error_reporting', E_WARNING);
-            ini_set('display_errors', false);
-            ini_set('log_errors', true);
-            ini_set('error_log', ROOT . '/logs/' . date('Y-m-d') . '-error.log');
+            return $aRoute['method'];
+        }
+    }
+
+    /**
+     * Gets the arguments for the controller method from the given route definition
+     *
+     * @param array $aRoute
+     *
+     * @return array
+     */
+    protected static function getArgs(array $aRoute) : array
+    {
+        $aArgs = [];
+        if (isset($aRoute['args']) && is_array($aRoute['args'])) {
+            foreach ($aRoute['args'] as $arg) {
+                if (isset($aRoute['Match'][$arg])) {
+                    $aArgs[] = $aRoute['Match'][$arg];
+                }
+                elseif (!is_numeric($arg)) {
+                    $aArgs[] = $arg;
+                }
+            }
+        }
+
+        return $aArgs;
+    }
+
+    /**
+     * Outputs the result of the controller
+     *
+     * @param $mRet
+     */
+    protected static function handleResult($mRet)
+    {
+        if (is_scalar($mRet)) {
+            echo $mRet;
+        }
+        elseif (!is_null($mRet)) {
+            $mRet = json_encode($mRet);
+            if (PHP_SAPI !== 'cli') {
+                header('Content-Type: application/json');
+                header('Content-Length: ' . strlen($mRet));
+            }
+            echo $mRet;
         }
     }
 }
