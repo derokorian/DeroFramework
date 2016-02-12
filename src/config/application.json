@@ -1,0 +1,8 @@
+{
+  "paths": {
+    "data_files": [],
+    "routes": [
+      "src/routes/*.php"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "image_url": "/images/",
+  "script_url": "/scripts/",
+  "style_url": "/styles/",
+  "site_url": "/",
+  "template": {
+    "extensions": [
+      "phtml",
+      "php",
+      "tpl",
+      "html"
+    ],
+    "paths": [
+      "src/view"
+    ]
+  }
+}

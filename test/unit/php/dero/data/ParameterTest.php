@@ -9,7 +9,7 @@ class ParameterTest extends PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->oParam = new Parameter('test',123,DB_PARAM_INT);
+        $this->oParam = new Parameter('test', 123, DB_PARAM_INT);
     }
 
     public function testName()

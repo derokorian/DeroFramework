@@ -1,8 +1,8 @@
 language: php
 php:
-  - 5.6
-  - 5.5
+  - 7.0
 before_script:
   - echo 'date.timezone = "UTC"' >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
+  - composer install
 script:
-  - phpunit --configuration ./test/unit/php/phpunit.xml
+  - ./vendor/bin/phpunit --configuration ./test/unit/php/phpunit.xml

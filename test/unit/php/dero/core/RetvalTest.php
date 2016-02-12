@@ -7,7 +7,7 @@ class RetvalTest extends PHPUnit_Framework_TestCase
     public function testSuccess()
     {
         $oRetval = new Retval();
-        $oRetval->Set(['key'=>'value']);
+        $oRetval->Set(['key' => 'value']);
 
         $this->assertFalse($oRetval->HasFailure());
 

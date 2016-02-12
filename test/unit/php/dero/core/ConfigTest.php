@@ -7,7 +7,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase
     public function setUp()
     {
         file_put_contents(
-            ROOT . DS . 'dero/config/test.json',
+            ROOT . DS . 'src/config/test.json',
             json_encode([
                 'user' => 'myUser',
                 'pass' => 'myPass',
@@ -19,10 +19,13 @@ class ConfigTest extends PHPUnit_Framework_TestCase
             ])
         );
 
+        if (!file_exists(ROOT . DS . 'config')) {
+            mkdir(ROOT . DS . 'config');
+        }
+
         file_put_contents(
             ROOT . DS . 'config/test.json',
             json_encode([
-                'user' => 'myUser',
                 'pass' => 'testPass',
                 'custom' => 1234
             ])
@@ -31,25 +34,26 @@ class ConfigTest extends PHPUnit_Framework_TestCase
 
     public function tearDown()
     {
-        unlink(ROOT . DS . 'dero/config/test.json');
+        unlink(ROOT . DS . 'src/config/test.json');
         unlink(ROOT . DS . 'config/test.json');
+        rmdir(ROOT . DS . 'config');
     }
 
     public function testSimple()
     {
         $this->assertEquals(
             'myUser',
-            Config::GetValue('test','user')
+            Config::GetValue('test', 'user')
         );
 
         $this->assertEquals(
             'testPass',
-            Config::GetValue('test','pass')
+            Config::GetValue('test', 'pass')
         );
 
         $this->assertEquals(
             1234,
-            Config::GetValue('test','custom')
+            Config::GetValue('test', 'custom')
         );
     }
 
