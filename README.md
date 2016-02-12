@@ -11,6 +11,7 @@ Getting Started
 ===============
 Install the framework through composer, and copy the public folder to your root directory
 > composer require derokorian/deroframework
+
 > cp vendor/derokorian/deroframework/public . -R
 
 Coming Soon, initialize a new app
