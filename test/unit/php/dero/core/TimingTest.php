@@ -4,7 +4,7 @@ use Dero\Core\Timing;
 
 class TimingTest extends PHPUnit_Framework_TestCase
 {
-    use \Dero\Test\Traits\assertHeaders;
+    use \Dero\Test\Traits\AssertHeaders;
 
     public function testTiming()
     {
