@@ -14,12 +14,18 @@ use Dero\Controller\BaseController;
 
 class Main
 {
+    public static function getMainClass()
+    {
+        return class_exists('\App\Core\Main')
+                ? '\App\Core\Main'
+                : static::class;
+    }
+
     /**
      * Initializes and runs the app for the current request
      */
     public static function run()
     {
-        static::init();
         $aRoute = static::findRoute();
         if (!empty($aRoute)) {
             static::loadRoute($aRoute);
@@ -29,7 +35,7 @@ class Main
     /**
      * Initializes and runs the application
      */
-    protected static function init()
+    public static function init()
     {
         static::initSettings();
         static::initErrors();

@@ -8,16 +8,25 @@
 define('ROOT', dirname(__DIR__));
 define('DS', DIRECTORY_SEPARATOR);
 
-require_once __DIR__ . '/autoload.php';
+require_once ROOT . '/vendor/autoload.php';
 
 use Dero\Core\Timing;
 
-ob_start();
+$Main = class_exists('\App\Core\Main')
+    ? '\App\Core\Main'
+    : \Dero\Core\Main::class;
 
-Timing::start('elapsed');
-Dero\Core\Main::run();
-Timing::end('elapsed');
+$Main::init();
 
-IS_DEBUG && Timing::setHeaderTimings();
+if (IS_DEBUG) {
+    ob_start();
+    Timing::start('elapsed');
+}
 
-ob_end_flush();
+$Main::run();
+
+if (IS_DEBUG) {
+    Timing::end('elapsed');
+    Timing::setHeaderTimings();
+    ob_end_flush();
+}

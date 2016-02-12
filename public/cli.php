@@ -10,11 +10,9 @@ define('ROOT', dirname(__DIR__));
 define('DS', DIRECTORY_SEPARATOR);
 
 require_once __DIR__ . '/autoload.php';
+$Main = class_exists('\App\Core\Main')
+    ? '\App\Core\Main'
+    : \Dero\Core\Main::class;
 
-Dero\Core\Timing::start('elapsed');
-Dero\Core\Main::run();
-Dero\Core\Timing::end('elapsed');
-
-echo "\n";
-Dero\Core\Timing::printTimings();
-echo "\n";
+$Main::init();
+$Main::run();
