@@ -12,8 +12,7 @@ class CollectionTest extends PHPUnit_Framework_TestCase
         $oCollection->add(3);
 
         $this->assertEquals($oCollection->count(), 3);
-        foreach($oCollection as $iKey => $iValue)
-        {
+        foreach ($oCollection as $iKey => $iValue) {
             $this->assertEquals($iKey + 1, $iValue);
         }
     }

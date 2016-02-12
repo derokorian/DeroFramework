@@ -2,7 +2,7 @@
   "scripts": [
     {
       "name": "jquery",
-      "src": "jquery-1.11.0.min.js",
+      "src": "//code.jquery.com/jquery-2.2.0.min.js",
       "dep": []
     },
     {
@@ -14,10 +14,10 @@
     }
   ],
   "styles": [
-    {
-      "name": "site",
-      "src": "site.css",
-      "dep": []
-    }
+//    {
+//      "name": "site",
+//      "src": "site.css",
+//      "dep": []
+//    }
   ]
 }

@@ -2,6 +2,9 @@
 
 use Dero\Core\Retval;
 use Dero\Data\DataException;
+use Dero\Data\DataInterface;
+use Dero\Data\Parameter;
+use Dero\Data\ParameterCollection;
 
 class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
 {
@@ -39,7 +42,7 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             'test_string' => 'string',
             'test_fixed' => 'fixed'
         ];
-        $oRet = $this->oModel->Validate($aVars);
+        $oRet = $this->oModel->Validate((object)$aVars);
         $this->assertFalse($oRet->HasFailure());
     }
 
@@ -151,30 +154,21 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
     public function testGenerateCreateTable()
     {
         $this->assertEquals(
-            "CREATE TABLE IF NOT EXISTS `test` (\n\t".
-            "`test_id` INT NOT NULL auto_increment  PRIMARY KEY,\n\t".
-            "`test_int` INT NOT NULL  ,\n\t\t".
-            "FOREIGN KEY test_test_id (test_int)\n\t\t\t".
-            "REFERENCES `test` (test_id),\n\t".
-            "`test_bool` TINYINT(1) NOT NULL  ,\n\t".
-            "`test_dec` DECIMAL(10, 3) NOT NULL  ,\n\t".
-            "`test_nullable` INT NULL  ,\n\t".
-            "`test_string` VARCHAR(15) NOT NULL  UNIQUE,\n\t".
-            "`test_fixed` CHAR(5) NOT NULL  ,\n\t".
-            "`created` DATETIME NOT NULL  ,\n\t".
-            "`modified` DATETIME NOT NULL  \n".
-            ") Engine=InnoDB",
+            "CREATE TABLE IF NOT EXISTS `test` (\n\t" .
+            "`test_id` INT NOT NULL auto_increment  PRIMARY KEY,\n\t" .
+            "`test_int` INT NOT NULL  ,\n\t\t" .
+            "FOREIGN KEY test_test_id (test_int)\n\t\t\t" .
+            "REFERENCES `test` (test_id),\n\t" .
+            "`test_bool` TINYINT(1) NOT NULL  ,\n\t" .
+            "`test_dec` DECIMAL(10, 3) NOT NULL  ,\n\t" .
+            "`test_nullable` INT NULL  ,\n\t" .
+            "`test_string` VARCHAR(15) NOT NULL  UNIQUE,\n\t" .
+            "`test_fixed` CHAR(5) NOT NULL  ,\n\t" .
+            "`created` DATETIME NOT NULL  ,\n\t" .
+            "`modified` DATETIME NOT NULL  \n" .
+            ") ENGINE=InnoDB",
             $this->oModel->GetCreateTable()
         );
-    }
-
-    private function setQueryException()
-    {
-        $this->oDataInterface
-            ->method('Query')
-            ->will(
-                $this->throwException(new DataException)
-            );
     }
 
     public function setQuerySuccess($mRet)
@@ -193,6 +187,15 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
         $oRet = $this->oModel->VerifyModelDefinition();
         $this->assertTrue($oRet->HasFailure());
         $this->assertEquals('Unable to query database', $oRet->GetError());
+    }
+
+    private function setQueryException()
+    {
+        $this->oDataInterface
+            ->method('Query')
+            ->will(
+                $this->throwException(new DataException)
+            );
     }
 
     public function testVerifyModelDefinitionFailedDescribe()
@@ -215,7 +218,7 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
     {
         $oRet1 = new QueryRet();
         $oRet1->Set([]);
-        $oRet2 = new Retval();
+        $oRet2 = new QueryRet();
         $oRet2->Set('Created Table');
 
         $this->oDataInterface
@@ -264,20 +267,57 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
     }
 }
 
-class QueryRet
+class QueryRet implements DataInterface
 {
     const THROW_EXCEPTION = 'THROW_EXCEPTION';
     private $mRet;
-    public function Set($mVal) {
+
+    public function Set($mVal)
+    {
         $this->mRet = $mVal;
     }
-    public function GetAll()
+
+    public function GetAll($sClass = null)
     {
-        if( $this->mRet === self::THROW_EXCEPTION )
-        {
+        if ($this->mRet === self::THROW_EXCEPTION) {
             throw new DataException;
         }
         return $this->mRet;
+    }
+
+    public function Prepare(string $Query) : DataInterface
+    {
+        return $this;
+    }
+
+    public function Query(string $Query) : DataInterface
+    {
+        return $this;
+    }
+
+    public function BindParams(ParameterCollection $Params) : DataInterface
+    {
+        return $this;
+    }
+
+    public function BindParam(Parameter $Param) : DataInterface
+    {
+        return $this;
+    }
+
+    public function Execute() : DataInterface
+    {
+        return $this;
+    }
+
+    public function Get($mClass = null)
+    {
+        return (object)['name' => 'test'];
+    }
+
+    public function GetScalar()
+    {
+        return '';
     }
 }
 
@@ -341,7 +381,8 @@ class BaseModelExtension extends \Dero\Data\BaseModel
         ]
     ];
 
-    public function getCreateTable() {
+    public function getCreateTable()
+    {
         return $this->GenerateCreateTable();
     }
 }

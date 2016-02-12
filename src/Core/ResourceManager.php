@@ -27,14 +27,14 @@ class ResourceManager
     {
         // Load scripts from configuration
         if (count(static::$KNOWN_SCRIPTS) == 0) {
-            static::$KNOWN_SCRIPTS = Config::GetValue('resources', 'scripts');
+            static::$KNOWN_SCRIPTS = Config::GetValue('resources', 'scripts') ?? [];
         }
 
         self::addResource(
             $filename,
             '.js',
             ROOT . '/public/scripts/',
-            Config::GetValue('website', 'script_url'),
+            Config::GetValue('website', 'script_url') ?? '',
             static::$KNOWN_SCRIPTS,
             self::$scripts
         );
@@ -97,14 +97,14 @@ class ResourceManager
     public static function AddStyle(string $filename)
     {
         if (count(static::$KNOWN_STYLES) == 0) {
-            static::$KNOWN_STYLES = Config::GetValue('resources', 'styles');
+            static::$KNOWN_STYLES = Config::GetValue('resources', 'styles') ?? [];
         }
 
         self::addResource(
             $filename,
             '.css',
             ROOT . '/public/styles/',
-            Config::GetValue('website', 'style_url'),
+            Config::GetValue('website', 'style_url') ?? '',
             self::$KNOWN_STYLES,
             self::$styles
         );
