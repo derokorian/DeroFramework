@@ -2,8 +2,6 @@
 
 namespace Dero\Controller;
 
-use Dero\Core\int;
-
 class BaseController
 {
     /**

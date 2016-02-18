@@ -75,7 +75,7 @@ class Main
             ini_set('error_reporting', E_WARNING);
             ini_set('display_errors', false);
             ini_set('log_errors', true);
-            ini_set('error_log', dirname(__DIR__) . '/logs/' . date('Y-m-d') . '-error.log');
+            ini_set('error_log', ROOT . '/logs/' . date('Y-m-d') . '-error.log');
         }
     }
 
