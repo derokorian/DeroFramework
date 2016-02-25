@@ -10,4 +10,4 @@ before_script:
 script:
   - ./vendor/bin/phpunit --configuration ./test/unit/php/phpunit.xml
 after_script:
-  - ./vendor/bin/test-reporter
+  - ./vendor/bin/test-reporter --coverage-report=test/logs/coverage.xml
