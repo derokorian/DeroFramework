@@ -3,7 +3,7 @@ DeroFramework
 
 Light-weight minimalist framework, for rapid development of individual sites.
 
-[![Build Status](https://travis-ci.org/derokorian/DeroFramework.svg?branch=master)](https://travis-ci.org/derokorian/DeroFramework)
+[![Build Status](https://travis-ci.org/derokorian/DeroFramework.svg?branch=master)](https://travis-ci.org/derokorian/DeroFramework) [![Code Climate](https://codeclimate.com/github/derokorian/DeroFramework/badges/gpa.svg)](https://codeclimate.com/github/derokorian/DeroFramework)
 
 See wiki for more information on how to use this framework.
 

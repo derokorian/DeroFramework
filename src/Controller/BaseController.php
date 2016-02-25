@@ -4,6 +4,51 @@ namespace Dero\Controller;
 
 class BaseController
 {
+    protected static $response_status_messages = [
+        100 => 'Continue',
+        101 => 'Switching Protocols',
+        200 => 'OK',
+        201 => 'Created',
+        202 => 'Accepted',
+        203 => 'Non-Authoritative Information',
+        204 => 'No Content',
+        205 => 'Reset Content',
+        206 => 'Partial Context',
+        300 => 'Multiple Choices',
+        301 => 'Moved Permanently',
+        302 => 'Found',
+        303 => 'See Other',
+        304 => 'Not Modified',
+        305 => 'Use Proxy',
+        307 => 'Temporary Redirect',
+        400 => 'Bad Request',
+        401 => 'Unauthorized',
+        402 => 'Payment Required',
+        403 => 'Forbidden',
+        404 => 'Not Found',
+        405 => 'Method Not Allowed',
+        406 => 'Not Acceptable',
+        407 => 'Proxy Authentication Required',
+        408 => 'Request Timeout',
+        409 => 'Conflict',
+        410 => 'Gone',
+        411 => 'Length Required',
+        412 => 'Precondition Failed',
+        413 => 'Request Entity Too Large',
+        414 => 'Request-URI Too Long',
+        415 => 'Unsupported Media Type',
+        416 => 'Request Range Not Satisfiable',
+        417 => 'Expectation Failed',
+        422 => 'Unprocessable Entity',
+        429 => 'Too Many Requests',
+        500 => 'Internal Server Error',
+        501 => 'Not Implemented',
+        502 => 'Bad Gateway',
+        503 => 'Service Unavailable',
+        504 => 'Gateway Timeout',
+        505 => 'HTTP Version Not Supported',
+    ];
+    
     /**
      * Sets the $aOpts argument to include search parameters in from the request
      *
@@ -37,135 +82,13 @@ class BaseController
      */
     final protected function responseStatus(int $iCode)
     {
-        $str = $_SERVER['SERVER_PROTOCOL'] . " $iCode ";
-        switch ($iCode) {
-            case 100:
-                $str .= 'Continue';
-                break;
-            case 101:
-                $str .= 'Switching Protocols';
-                break;
-            case 200:
-                $str .= 'OK';
-                break;
-            case 201:
-                $str .= 'Created';
-                break;
-            case 202:
-                $str .= 'Accepted';
-                break;
-            case 203:
-                $str .= 'Non-Authoritative Information';
-                break;
-            case 204:
-                $str .= 'No Content';
-                break;
-            case 205:
-                $str .= 'Reset Content';
-                break;
-            case 206:
-                $str .= 'Partial Context';
-                break;
-            case 300:
-                $str .= 'Multiple Choices';
-                break;
-            case 301:
-                $str .= 'Moved Permanently';
-                break;
-            case 302:
-                $str .= 'Found';
-                break;
-            case 303:
-                $str .= 'See Other';
-                break;
-            case 304:
-                $str .= 'Not Modified';
-                break;
-            case 305:
-                $str .= 'Use Proxy';
-                break;
-            case 307:
-                $str .= 'Temporary Redirect';
-                break;
-            case 400:
-                $str .= 'Bad Request';
-                break;
-            case 401:
-                $str .= 'Unauthorized';
-                break;
-            case 402:
-                $str .= 'Payment Required';
-                break;
-            case 403:
-                $str .= 'Forbidden';
-                break;
-            case 404:
-                $str .= 'Not Found';
-                break;
-            case 405:
-                $str .= 'Method Not Allowed';
-                break;
-            case 406:
-                $str .= 'Not Acceptable';
-                break;
-            case 407:
-                $str .= 'Proxy Authentication Required';
-                break;
-            case 408:
-                $str .= 'Request Timeout';
-                break;
-            case 409:
-                $str .= 'Conflict';
-                break;
-            case 410:
-                $str .= 'Gone';
-                break;
-            case 411:
-                $str .= 'Length Required';
-                break;
-            case 412:
-                $str .= 'Precondition Failed';
-                break;
-            case 413:
-                $str .= 'Request Entity Too Large';
-                break;
-            case 414:
-                $str .= 'Request-URI Too Long';
-                break;
-            case 415:
-                $str .= 'Unsupported Media Type';
-                break;
-            case 416:
-                $str .= 'Request Range Not Satisfiable';
-                break;
-            case 417:
-                $str .= 'Expectation Failed';
-                break;
-            case 422:
-                $str .= 'Unprocessable Entity';
-                break;
-            case 429:
-                $str .= 'Too Many Requests';
-                break;
-            case 500:
-                $str .= 'Internal Server Error';
-                break;
-            case 501:
-                $str .= 'Not Implemented';
-                break;
-            case 502:
-                $str .= 'Bad Gateway';
-                break;
-            case 503:
-                $str .= 'Service Unavailable';
-                break;
-            case 504:
-                $str .= 'Gateway Timeout';
-                break;
-            case 505:
-                $str .= 'HTTP Version Not Supported';
-                break;
+        if (!isset(static::$response_status_messages[$iCode])) {
+            throw new \InvalidArgumentException("$iCode is not a recognized response status");
         }
+
+        $str = filter_input(INPUT_SERVER, 'SERVER_PROTOCOL', FILTER_SANITIZE_STRING);
+        $str .= " $iCode " . static::$response_status_messages[$iCode];
+
         if (!headers_sent()) {
             header($str, true, $iCode);
         }
