@@ -11,6 +11,7 @@ class Config
 {
     const PATHS = [
         ROOT . '/vendor/derokorian/deroframework/src/' . 'config' . DS,
+        ROOT . '/src/' . 'config' . DS,
         ROOT . DS . 'app' . DS . 'config' . DS,
         ROOT . DS . 'config' . DS,
     ];

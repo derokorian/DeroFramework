@@ -11,7 +11,8 @@
       "html"
     ],
     "paths": [
-      "vendor/derokorian/deroframework/src/view"
+      "vendor/derokorian/deroframework/src/view",
+      "src/view"
     ]
   }
 }

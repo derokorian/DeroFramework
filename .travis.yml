@@ -8,6 +8,6 @@ before_script:
   - echo 'date.timezone = "UTC"' >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
   - composer install --dev
 script:
-  - ./vendor/bin/phpunit --coverage-clover build/logs/clover.xml --configuration ./test/unit/php/phpunit.xml
+  - ./vendor/bin/phpunit --configuration ./test/unit/php/phpunit.xml
 after_script:
   - ./vendor/bin/test-reporter

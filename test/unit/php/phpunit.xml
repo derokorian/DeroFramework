@@ -22,12 +22,6 @@
         stderr="false"
         verbose="false">
     <testsuites>
-        <testsuite name="Test Controllers">
-            <directory>./app/controller/</directory>
-        </testsuite>
-        <testsuite name="Test Models">
-            <directory>./app/model/</directory>
-        </testsuite>
         <testsuite name="Framework_Core">
             <directory>./dero/core/</directory>
         </testsuite>
@@ -35,4 +29,12 @@
             <directory>./dero/data/</directory>
         </testsuite>
     </testsuites>
+    <filter>
+        <whitelist processUncoveredFilesFromWhitelist="false">
+            <directory suffix=".php">./../../../src</directory>
+        </whitelist>
+    </filter>
+    <logging>
+        <log type="coverage-clover" target="./../../logs/coverage.xml"/>
+    </logging>
 </phpunit>
