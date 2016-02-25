@@ -1,8 +1,13 @@
 language: php
 php:
   - 7.0
+addons:
+    code_climate:
+        repo_token: 7dcf0fdb676192f86679fa76c316b6e0fa51c8a3e1009c1697c9090ea6e7833d
 before_script:
   - echo 'date.timezone = "UTC"' >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
-  - composer install
+  - composer install --dev
 script:
-  - ./vendor/bin/phpunit --configuration ./test/unit/php/phpunit.xml
+  - ./vendor/bin/phpunit --coverage-clover build/logs/clover.xml --configuration ./test/unit/php/phpunit.xml
+after_script:
+  - ./vendor/bin/test-reporter
