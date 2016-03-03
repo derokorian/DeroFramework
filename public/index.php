@@ -6,6 +6,7 @@
  * Date: 12/6/13
  */
 require_once './bootstrap.php';
+require_once ROOT . '/vendor/autoload.php';
 
 use Dero\Core\Timing;
 
