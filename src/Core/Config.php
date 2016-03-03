@@ -25,10 +25,10 @@ class Config
      * @example config::GetValue('database','default','engine')
      * @return mixed value of the configuration or null if not found
      */
-    public static function GetValue(...$args)
+    public static function getValue(...$args)
     {
         if (count($args) > 0) {
-            self::LoadConfig($args[0]);
+            self::loadConfig($args[0]);
             $last = self::$Config;
             foreach ($args as $arg) {
                 if (isset($last[$arg])) {
@@ -50,14 +50,14 @@ class Config
      *
      * @param $sFile
      */
-    private static function LoadConfig($sFile)
+    private static function loadConfig($sFile)
     {
         if (!array_key_exists($sFile, self::$Config)) {
             $aConfig = [];
             $sFilename = $sFile . '.json';
             foreach (static::PATHS as $sPath) {
                 if (file_exists($sPath . $sFilename) && is_readable($sPath . $sFilename)) {
-                    $aConfig = self::MergeConfig(
+                    $aConfig = self::mergeConfig(
                         $aConfig,
                         jsonc_decode(
                             file_get_contents($sPath . $sFilename),
@@ -76,13 +76,13 @@ class Config
      *
      * @returns array
      */
-    private static function MergeConfig(Array $aConfig, Array $aVal)
+    private static function mergeConfig(Array $aConfig, Array $aVal)
     {
         $aReturn = [];
 
         foreach ($aVal as $k => $v) {
             if (isset($aConfig[$k]) && is_array($aConfig[$k]) && is_array($v)) {
-                $aReturn[$k] = self::MergeConfig($aConfig[$k], $v);
+                $aReturn[$k] = self::mergeConfig($aConfig[$k], $v);
             }
             elseif (is_numeric($k)) {
                 $aReturn[] = $v;
@@ -121,4 +121,3 @@ function jsonc_decode($strJson, $bAssoc = false, $iDepth = 512, $iOptions = 0)
 
     return json_decode($strJson, $bAssoc, $iDepth, $iOptions);
 }
-

@@ -112,7 +112,7 @@ class Main
         static $aRoutes = [];
 
         if (empty($aRoutes)) {
-            foreach (Config::GetValue('application', 'paths', 'routes') as $path) {
+            foreach (Config::getValue('application', 'paths', 'routes') as $path) {
                 foreach (glob(ROOT . DS . $path) as $file) {
                     is_readable($file) && include_once $file;
                 }
@@ -277,11 +277,11 @@ class Main
      */
     protected static function initSession()
     {
-        session_name(Config::GetValue('security', 'sessions', 'name'));
+        session_name(Config::getValue('security', 'sessions', 'name'));
         session_set_cookie_params(
-            Config::GetValue('security', 'sessions', 'lifetime'),
+            Config::getValue('security', 'sessions', 'lifetime'),
             '/',
-            parse_url(Config::GetValue('website', 'site_url'), PHP_URL_HOST),
+            parse_url(Config::getValue('website', 'site_url'), PHP_URL_HOST),
             false,
             true
         );

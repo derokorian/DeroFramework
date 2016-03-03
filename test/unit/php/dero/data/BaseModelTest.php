@@ -43,7 +43,7 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             'test_fixed'    => 'fixed',
         ];
         $oRet = $this->oModel->Validate((object) $aVars);
-        $this->assertFalse($oRet->HasFailure());
+        $this->assertFalse($oRet->hasFailure());
     }
 
     /**
@@ -55,10 +55,10 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
     public function testValidateFailure($aVars, $strError)
     {
         $oRet = $this->oModel->Validate($aVars);
-        $this->assertTrue($oRet->HasFailure());
+        $this->assertTrue($oRet->hasFailure());
         $this->assertEquals(
             $strError,
-            $oRet->GetError()
+            $oRet->getError()
         );
     }
 
@@ -175,7 +175,7 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
     public function setQuerySuccess($mRet)
     {
         $oRetval = new Retval();
-        $oRetval->Set($mRet);
+        $oRetval->set($mRet);
         $this->oDataInterface
             ->method('Query')
             ->willReturn($oRetval);
@@ -187,8 +187,8 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
     {
         $this->setQueryException();
         $oRet = $this->oModel->VerifyModelDefinition();
-        $this->assertTrue($oRet->HasFailure());
-        $this->assertEquals('Unable to query database', $oRet->GetError());
+        $this->assertTrue($oRet->hasFailure());
+        $this->assertEquals('Unable to query database', $oRet->getError());
     }
 
     private function setQueryException()
@@ -212,8 +212,8 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             ->will($this->onConsecutiveCalls($oRet1, $oRet2));
 
         $oRet = $this->oModel->VerifyModelDefinition();
-        $this->assertTrue($oRet->HasFailure());
-        $this->assertEquals('Unable to query database', $oRet->GetError());
+        $this->assertTrue($oRet->hasFailure());
+        $this->assertEquals('Unable to query database', $oRet->getError());
     }
 
     public function testVerifyModelDefinitionSuccessCreate()
@@ -228,8 +228,8 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             ->will($this->onConsecutiveCalls($oRet1, $oRet2));
 
         $oRet = $this->oModel->VerifyModelDefinition();
-        $this->assertFalse($oRet->HasFailure());
-        $this->assertEquals(['test' => 'Table successfully created'], $oRet->Get());
+        $this->assertFalse($oRet->hasFailure());
+        $this->assertEquals(['test' => 'Table successfully created'], $oRet->get());
     }
 
     public function testVerifyModelDefinitionSuccessAlter()
@@ -253,7 +253,7 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             ->will($this->onConsecutiveCalls($oRet1, $oRet2, $oRet3));
 
         $oRet = $this->oModel->VerifyModelDefinition();
-        $this->assertFalse($oRet->HasFailure());
+        $this->assertFalse($oRet->hasFailure());
         $this->assertEquals(['test' => [
             'Updating column test_id',
             'Adding column test_int',
@@ -265,7 +265,7 @@ class BaseModelExtensionTest extends PHPUnit_Framework_TestCase
             'Adding column created',
             'Adding column modified',
             'test has been updated',
-        ]], $oRet->Get());
+        ]], $oRet->get());
     }
 }
 

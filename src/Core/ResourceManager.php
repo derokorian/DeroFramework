@@ -23,18 +23,18 @@ class ResourceManager
      *
      * @param $filename
      */
-    public static function AddScript(string $filename)
+    public static function addScript(string $filename)
     {
         // Load scripts from configuration
         if (count(static::$KNOWN_SCRIPTS) == 0) {
-            static::$KNOWN_SCRIPTS = Config::GetValue('resources', 'scripts') ?? [];
+            static::$KNOWN_SCRIPTS = Config::getValue('resources', 'scripts') ?? [];
         }
 
         self::addResource(
             $filename,
             '.js',
             ROOT . '/public/scripts/',
-            Config::GetValue('website', 'script_url') ?? '',
+            Config::getValue('website', 'script_url') ?? '',
             static::$KNOWN_SCRIPTS,
             self::$scripts
         );
@@ -46,8 +46,8 @@ class ResourceManager
         string $path,
         string $url,
         array $known,
-        array &$target)
-    {
+        array &$target
+    ) {
         // Check if requesting a configured resource
         if (($k = array_search($filename, array_column($known, 'name'))) !== false) {
             // Check if we already added it
@@ -94,17 +94,17 @@ class ResourceManager
      *
      * @param $filename
      */
-    public static function AddStyle(string $filename)
+    public static function addStyle(string $filename)
     {
         if (count(static::$KNOWN_STYLES) == 0) {
-            static::$KNOWN_STYLES = Config::GetValue('resources', 'styles') ?? [];
+            static::$KNOWN_STYLES = Config::getValue('resources', 'styles') ?? [];
         }
 
         self::addResource(
             $filename,
             '.css',
             ROOT . '/public/styles/',
-            Config::GetValue('website', 'style_url') ?? '',
+            Config::getValue('website', 'style_url') ?? '',
             self::$KNOWN_STYLES,
             self::$styles
         );
@@ -115,7 +115,7 @@ class ResourceManager
      *
      * @return mixed
      */
-    public static function LoadScripts() : string
+    public static function loadScripts() : string
     {
         return TemplateEngine::LoadView('scripts', ['scripts' => self::$scripts]);
     }
@@ -125,7 +125,7 @@ class ResourceManager
      *
      * @return mixed
      */
-    public static function LoadStyles() : string
+    public static function loadStyles() : string
     {
         return TemplateEngine::LoadView('styles', ['styles' => static::$styles]);
     }

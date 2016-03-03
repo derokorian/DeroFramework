@@ -125,7 +125,7 @@ class VersionController extends BaseController
         /** @var \Dero\Data\BaseModel $oModel */
         $oModel = new $sClass($this->db);
         $oRet = $oModel->VerifyModelDefinition();
-        if ($oRet->HasFailure()) {
+        if ($oRet->hasFailure()) {
             $exceptions = $oRet->getException();
             if (!is_array($exceptions)) {
                 $exceptions = [$exceptions];
@@ -138,7 +138,7 @@ class VersionController extends BaseController
             exit(1);
         }
         else {
-            echo implode("\n", $oRet->Get()) . "\n";
+            echo implode("\n", $oRet->get()) . "\n";
         }
         unset($oModel, $oRet);
         Timing::end($sClass);
@@ -236,7 +236,7 @@ class VersionController extends BaseController
 
     private function getDataPaths()
     {
-        foreach ((array) Config::GetValue('application', 'paths', 'data_files') as $sPath) {
+        foreach ((array) Config::getValue('application', 'paths', 'data_files') as $sPath) {
             yield ROOT . DS . $sPath . DS;
         }
     }

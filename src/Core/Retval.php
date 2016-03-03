@@ -26,7 +26,7 @@ class Retval
      *
      * @param $mVal
      */
-    public function Set($mVal)
+    public function set($mVal)
     {
         $this->mRetval = $mVal;
     }
@@ -36,7 +36,7 @@ class Retval
      *
      * @return null
      */
-    public function Get()
+    public function get()
     {
         return $this->mRetval;
     }
@@ -47,7 +47,7 @@ class Retval
      * @param                 $strMessage
      * @param \Exception|null $oException
      */
-    public function AddError($strMessage, \Exception $oException = null)
+    public function addError($strMessage, \Exception $oException = null)
     {
         $this->strError[] = $strMessage;
         $this->oException[] = $oException;
@@ -58,7 +58,7 @@ class Retval
      *
      * @return bool
      */
-    public function HasFailure()
+    public function hasFailure()
     {
         return count($this->strError) > 0;
     }
@@ -68,7 +68,7 @@ class Retval
      *
      * @return array|null
      */
-    public function GetError()
+    public function getError()
     {
         return count($this->strError) == 0 ? null :
             (count($this->strError) == 1 ? $this->strError[0] :
@@ -80,10 +80,10 @@ class Retval
      *
      * @return array|null
      */
-    public function GetException()
+    public function getException()
     {
         return count($this->oException) == 0 ? null :
             (count($this->oException) == 1 ? $this->oException[0] :
                 $this->oException);
     }
-} 
+}

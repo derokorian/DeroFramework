@@ -7,11 +7,11 @@ class RetvalTest extends PHPUnit_Framework_TestCase
     public function testSuccess()
     {
         $oRetval = new Retval();
-        $oRetval->Set(['key' => 'value']);
+        $oRetval->set(['key' => 'value']);
 
-        $this->assertFalse($oRetval->HasFailure());
+        $this->assertFalse($oRetval->hasFailure());
 
-        $mRet = $oRetval->Get();
+        $mRet = $oRetval->get();
 
         $this->assertNotEmpty($mRet);
         $this->assertTrue(is_array($mRet));
@@ -26,11 +26,11 @@ class RetvalTest extends PHPUnit_Framework_TestCase
     {
         $oException = new Exception('test');
         $oRetval = new Retval();
-        $oRetval->AddError('string error', $oException);
+        $oRetval->addError('string error', $oException);
 
-        $this->assertTrue($oRetval->HasFailure());
-        $this->assertEquals('string error', $oRetval->GetError());
-        $this->assertEquals($oException, $oRetval->GetException());
+        $this->assertTrue($oRetval->hasFailure());
+        $this->assertEquals('string error', $oRetval->getError());
+        $this->assertEquals($oException, $oRetval->getException());
     }
 
     public function testMultiError()
@@ -44,11 +44,11 @@ class RetvalTest extends PHPUnit_Framework_TestCase
             'second error',
         ];
         $oRetval = new Retval();
-        $oRetval->AddError($aErrors[0], $aExceptions[0]);
-        $oRetval->AddError($aErrors[1], $aExceptions[1]);
+        $oRetval->addError($aErrors[0], $aExceptions[0]);
+        $oRetval->addError($aErrors[1], $aExceptions[1]);
 
-        $this->assertTrue($oRetval->HasFailure());
-        $this->assertEquals($aErrors, $oRetval->GetError());
-        $this->assertEquals($aExceptions, $oRetval->GetException());
+        $this->assertTrue($oRetval->hasFailure());
+        $this->assertEquals($aErrors, $oRetval->getError());
+        $this->assertEquals($aExceptions, $oRetval->getException());
     }
 }

@@ -43,17 +43,17 @@ class ConfigTest extends PHPUnit_Framework_TestCase
     {
         $this->assertEquals(
             'myUser',
-            Config::GetValue('test', 'user')
+            Config::getValue('test', 'user')
         );
 
         $this->assertEquals(
             'testPass',
-            Config::GetValue('test', 'pass')
+            Config::getValue('test', 'pass')
         );
 
         $this->assertEquals(
             1234,
-            Config::GetValue('test', 'custom')
+            Config::getValue('test', 'custom')
         );
     }
 
@@ -61,7 +61,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase
     {
         $this->assertEquals(
             true,
-            Config::GetValue(
+            Config::getValue(
                 'test',
                 'complex',
                 'configuration',
@@ -74,7 +74,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase
     {
         $this->assertEquals(
             null,
-            Config::GetValue('test', 'fake')
+            Config::getValue('test', 'fake')
         );
     }
 
@@ -82,7 +82,7 @@ class ConfigTest extends PHPUnit_Framework_TestCase
     {
         $this->assertEquals(
             null,
-            Config::GetValue()
+            Config::getValue()
         );
     }
 }

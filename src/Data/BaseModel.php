@@ -54,7 +54,7 @@ abstract class BaseModel
         $aCols = $this->getColsFromTable($sTable);
         if (empty($aCols)) {
             // Uh oh, object name provided is not valid, return an error
-            $oRet->AddError(sprintf(
+            $oRet->addError(sprintf(
                                 'Unrecognized table provided to ' . get_called_class() . '::' . __FUNCTION__ . "($sTable)"
                             ));
 
@@ -68,7 +68,7 @@ abstract class BaseModel
             $this->GenerateCriteria($oParams, $aOpts, '', $aCols)
         );
         try {
-            $oRet->Set(array_map(function ($oItem) use ($aCols) {
+            $oRet->set(array_map(function ($oItem) use ($aCols) {
                 foreach ($aCols as $sCol => $aCol) {
                     switch ($aCol[COL_TYPE]) {
                         case COL_TYPE_INTEGER:
@@ -93,7 +93,7 @@ abstract class BaseModel
                        substr(static::class, 0, strrpos(static::class, '\\') + 1) . $sTable
                    )));
         } catch (DataException $e) {
-            $oRet->AddError('Unable to query database', $e);
+            $oRet->addError('Unable to query database', $e);
         }
 
         return $oRet;
@@ -288,7 +288,7 @@ abstract class BaseModel
         if (!is_array($aCols)) {
             // Uh oh, object name provided is not valid, return an error
             $oRet = new Retval;
-            $oRet->AddError(sprintf(
+            $oRet->addError(sprintf(
                                 'Unrecognized table provided to ' . get_called_class() . '::' . __FUNCTION__ . "($sTable)"
                             ));
         }
@@ -296,11 +296,11 @@ abstract class BaseModel
             // Try to validate the given object
             $oRet = $this->Validate($oObj, $aCols);
         }
-        if (!$oRet->HasFailure()) {
+        if (!$oRet->hasFailure()) {
             $oParams = new ParameterCollection();
             $strSql = $this->GenerateInsert($oParams, $oObj, $sTable, $aCols);
             try {
-                $oRet->Set(
+                $oRet->set(
                     $this->DB
                         ->Prepare($strSql)
                         ->BindParams($oParams)
@@ -308,27 +308,27 @@ abstract class BaseModel
                 );
             } catch (DataException $e) {
                 if ($e->getCode() == self::UNIQUE_CONSTRAINT_VIOLATION) {
-                    $oRet->AddError('Unable to insert, ' . $e->getMessage(), $e);
+                    $oRet->addError('Unable to insert, ' . $e->getMessage(), $e);
                 }
                 else {
-                    $oRet->AddError('Unable to query database', $e);
+                    $oRet->addError('Unable to query database', $e);
                 }
             }
         }
-        if (!$oRet->HasFailure()) {
+        if (!$oRet->hasFailure()) {
             $strSql = 'SELECT LAST_INSERT_ID()';
             try {
-                $oRet->Set(
+                $oRet->set(
                     $this->DB
                         ->Prepare($strSql)
                         ->Execute()
                         ->GetScalar()
                 );
             } catch (DataException $e) {
-                $oRet->AddError('Unable to query database', $e);
+                $oRet->addError('Unable to query database', $e);
             }
         }
-        if (!$oRet->HasFailure()) {
+        if (!$oRet->hasFailure()) {
             $sIdField = 'id';
             foreach ($aCols as $sColName => $aCol) {
                 if (!empty($aCol[KEY_TYPE]) && $aCol[KEY_TYPE] == KEY_TYPE_PRIMARY) {
@@ -336,7 +336,7 @@ abstract class BaseModel
                     break;
                 }
             }
-            $oObj->$sIdField = $oRet->Get();
+            $oObj->$sIdField = $oRet->get();
         }
 
         return $oRet;
@@ -362,14 +362,14 @@ abstract class BaseModel
                 $aCol[DB_REQUIRED] === true &&
                 !isset($aVars[$strCol])
             ) {
-                $oRetval->AddError($strCol . ' is required.');
+                $oRetval->addError($strCol . ' is required.');
             }
 
             if (isset($aCol[COL_LENGTH]) &&
                 isset($aVars[$strCol]) &&
                 strlen($aVars[$strCol]) > $aCol[COL_LENGTH]
             ) {
-                $oRetval->AddError($strCol . ' is longer than max length (' . $aCol[COL_LENGTH] . ').');
+                $oRetval->addError($strCol . ' is longer than max length (' . $aCol[COL_LENGTH] . ').');
             }
 
             if (isset($aCol[COL_TYPE]) &&
@@ -380,21 +380,21 @@ abstract class BaseModel
                         if (!is_numeric($aVars[$strCol]) ||
                             (string) (int) $aVars[$strCol] !== (string) $aVars[$strCol]
                         ) {
-                            $oRetval->AddError($strCol . ' must be a valid integer.');
+                            $oRetval->addError($strCol . ' must be a valid integer.');
                         }
                         break;
                     case COL_TYPE_BOOLEAN:
                         if (!is_bool($aVars) &&
                             (string) (bool) $aVars[$strCol] !== (string) $aVars[$strCol]
                         ) {
-                            $oRetval->AddError($strCol . ' must be a valid boolean.');
+                            $oRetval->addError($strCol . ' must be a valid boolean.');
                         }
                         break;
                     case COL_TYPE_DECIMAL:
                         if (!is_numeric($aVars[$strCol]) ||
                             !preg_match('/^[+\-]?(?:\d+(?:\.\d*)?|\.\d+)$/', trim($aVars[$strCol]))
                         ) {
-                            $oRetval->AddError($strCol . ' must be a valid decimal.');
+                            $oRetval->addError($strCol . ' must be a valid decimal.');
                         }
                         break;
                     case COL_TYPE_FIXED_STRING:
@@ -402,7 +402,7 @@ abstract class BaseModel
                             throw new \RuntimeException('COL_TYPE_FIXED_STRING found with no defined or invalid col_length!');
                         }
                         elseif (strlen($aVars[$strCol]) !== $aCol[COL_LENGTH]) {
-                            $oRetval->AddError($strCol . ' must be fixed length (' . $aCol[COL_LENGTH] . ').');
+                            $oRetval->addError($strCol . ' must be fixed length (' . $aCol[COL_LENGTH] . ').');
                         }
                         break;
                 }
@@ -412,7 +412,7 @@ abstract class BaseModel
                 isset($aVars[$strCol]) &&
                 !preg_match($aCol[DB_VALIDATION], $aVars[$strCol])
             ) {
-                $oRetval->AddError($strCol . ' did not validate.');
+                $oRetval->addError($strCol . ' did not validate.');
             }
         }
 
@@ -479,7 +479,7 @@ abstract class BaseModel
         if (!is_array($aCols)) {
             // Uh oh, object name provided is not valid, return an error
             $oRet = new Retval;
-            $oRet->AddError(sprintf(
+            $oRet->addError(sprintf(
                                 'Unrecognized table provided to ' . get_called_class() . '::' . __FUNCTION__
                             ));
         }
@@ -487,11 +487,11 @@ abstract class BaseModel
             // Try to validate the given object
             $oRet = $this->Validate($oObj, $aCols);
         }
-        if (!$oRet->HasFailure()) {
+        if (!$oRet->hasFailure()) {
             $oParams = new ParameterCollection();
             $strSql = $this->GenerateUpdate($oParams, $oObj, $sTable, $aCols);
             try {
-                $oRet->Set(
+                $oRet->set(
                     $this->DB
                         ->Prepare($strSql)
                         ->BindParams($oParams)
@@ -499,10 +499,10 @@ abstract class BaseModel
                 );
             } catch (DataException $e) {
                 if ($e->getCode() == self::UNIQUE_CONSTRAINT_VIOLATION) {
-                    $oRet->AddError('Unable to update, ' . $e->getMessage(), $e);
+                    $oRet->addError('Unable to update, ' . $e->getMessage(), $e);
                 }
                 else {
-                    $oRet->AddError('Unable to query database', $e);
+                    $oRet->addError('Unable to query database', $e);
                 }
             }
         }
@@ -567,26 +567,26 @@ abstract class BaseModel
 
         // Do the root
         $oRetval = $this->VerifyTableDefinition();
-        if ($oRetval->HasFailure()) {
+        if ($oRetval->hasFailure()) {
             // Fail fast if root fails
             return $oRetval;
         }
         else {
-            $aRet[static::TABLE_NAME] = $oRetval->Get();
+            $aRet[static::TABLE_NAME] = $oRetval->get();
         }
 
         foreach (static::SUB_OBJECTS as $strTable => $aCols) {
             $oRetval = $this->VerifyTableDefinition($strTable, $aCols);
-            if ($oRetval->HasFailure()) {
-                $aRet[$strTable] = $oRetval->GetError();
+            if ($oRetval->hasFailure()) {
+                $aRet[$strTable] = $oRetval->getError();
             }
             else {
-                $aRet[$strTable] = $oRetval->Get();
+                $aRet[$strTable] = $oRetval->get();
             }
         }
 
         $oRetval = new Retval();
-        $oRetval->Set($aRet);
+        $oRetval->set($aRet);
 
         return $oRetval;
     }
@@ -607,18 +607,18 @@ abstract class BaseModel
         $aColumns = $aColumns ?: static::COLUMNS;
 
         $oRetval = $this->verifyTableExistence($sTable, $aColumns);
-        if ($oRetval->HasFailure() || $oRetval->Get() == static::TABLE_CREATED) {
+        if ($oRetval->hasFailure() || $oRetval->get() == static::TABLE_CREATED) {
             return $oRetval;
         }
         $strSql = sprintf('DESCRIBE `%s`', $sTable);
         try {
-            $oRetval->Set(
+            $oRetval->set(
                 $this->DB
                     ->Query($strSql)
                     ->GetAll()
             );
         } catch (DataException $e) {
-            $oRetval->AddError('Unable to query database', $e);
+            $oRetval->addError('Unable to query database', $e);
 
             return $oRetval;
         }
@@ -626,7 +626,7 @@ abstract class BaseModel
         $strUpdate = 'ALTER TABLE `' . $sTable . '` ';
         $aTableCols = array_map(function ($el) {
             return (array) $el;
-        }, $oRetval->Get());
+        }, $oRetval->get());
         $aTableCols = array_combine(
             array_column($aTableCols, 'Field'),
             array_values($aTableCols)
@@ -772,7 +772,7 @@ abstract class BaseModel
             }
             unset($strCol, $aCol);
         }
-        if (Config::GetValue('database', 'drop_old_columns')) {
+        if (Config::getValue('database', 'drop_old_columns')) {
             foreach ($aTableCols as $strCol => $aCol) {
                 if (!isset($aColumns[$strCol])) {
 
@@ -795,16 +795,16 @@ EOF
         $strUpdate = substr($strUpdate, 0, -1);
         if (count($aRet) > 0) {
             try {
-                $oRetval->Set('Updating ' . $sTable);
+                $oRetval->set('Updating ' . $sTable);
                 $this->DB->Query($strUpdate);
                 $aRet[] = $sTable . ' has been updated';
-                $oRetval->Set($aRet);
+                $oRetval->set($aRet);
             } catch (\Exception $e) {
-                $oRetval->AddError('Error updating table ' . $sTable, $e);
+                $oRetval->addError('Error updating table ' . $sTable, $e);
             }
         }
         else {
-            $oRetval->Set($sTable . ' is up to date');
+            $oRetval->set($sTable . ' is up to date');
         }
 
         return $oRetval;
@@ -823,27 +823,27 @@ EOF
         $oRetval = new Retval();
         $strSql = sprintf("SHOW TABLES LIKE '%s'", $sTable ?: static::TABLE_NAME);
         try {
-            $oRetval->Set(
+            $oRetval->set(
                 $this->DB
                     ->Query($strSql)
                     ->GetAll()
             );
         } catch (DataException $e) {
-            $oRetval->AddError('Unable to query database', $e);
+            $oRetval->addError('Unable to query database', $e);
 
             return $oRetval;
         }
-        if (count($oRetval->Get()) == 0) {
+        if (count($oRetval->get()) == 0) {
             $oRetval = new Retval();
             $strSql = $this->GenerateCreateTable($sTable, $aColumns);
             try {
-                $oRetval->Set($this->DB->Query($strSql));
+                $oRetval->set($this->DB->Query($strSql));
             } catch (DataException $e) {
-                $oRetval->AddError('Unable to query database', $e);
+                $oRetval->addError('Unable to query database', $e);
             }
-            if (!$oRetval->HasFailure()) {
+            if (!$oRetval->hasFailure()) {
                 $oRetval = new Retval();
-                $oRetval->Set(static::TABLE_CREATED);
+                $oRetval->set(static::TABLE_CREATED);
             }
         }
 

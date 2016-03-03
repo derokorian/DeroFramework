@@ -6,8 +6,8 @@ class ResourceManagerTest extends PHPUnit_Framework_TestCase
 {
     public function testScript()
     {
-        ResourceManager::AddScript('angular');
-        $strRet = ResourceManager::LoadScripts();
+        ResourceManager::addScript('angular');
+        $strRet = ResourceManager::loadScripts();
         $this->assertNotEmpty($strRet);
 
         // loads a dependency
@@ -29,7 +29,7 @@ class ResourceManagerTest extends PHPUnit_Framework_TestCase
      */
     public function testScriptFail()
     {
-        ResourceManager::AddScript('non-existent');
+        ResourceManager::addScript('non-existent');
     }
 
     public function testStyle()
@@ -52,6 +52,6 @@ class ResourceManagerTest extends PHPUnit_Framework_TestCase
      */
     public function testStyleFail()
     {
-        ResourceManager::AddStyle('non-existent');
+        ResourceManager::addStyle('non-existent');
     }
 }

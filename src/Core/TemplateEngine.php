@@ -22,8 +22,8 @@ class TemplateEngine
      */
     public static function LoadView(string $strView, Array $vars = []) : string
     {
-        $aExt = Config::GetValue('website', 'template', 'extensions');
-        $aPath = Config::GetValue('website', 'template', 'paths');
+        $aExt = Config::getValue('website', 'template', 'extensions');
+        $aPath = Config::getValue('website', 'template', 'paths');
         foreach ($aPath as $sPath) {
             foreach ($aExt as $strExt) {
                 $strFile = ROOT . DS . $sPath . DS . $strView . '.' . $strExt;

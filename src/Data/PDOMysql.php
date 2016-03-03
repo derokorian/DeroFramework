@@ -56,8 +56,8 @@ class PDOMysql implements DataInterface
         }
         $sType = null;
 
-        if (!is_null(Config::GetValue('database', $this->sInstance, 'write')) &&
-            !is_null(Config::GetValue('database', $this->sInstance, 'read'))
+        if (!is_null(Config::getValue('database', $this->sInstance, 'write')) &&
+            !is_null(Config::getValue('database', $this->sInstance, 'read'))
         ) {
             if ($bIsRead) {
                 if ($this->oInstance['read']) {
@@ -72,19 +72,19 @@ class PDOMysql implements DataInterface
                 $sType = 'write';
             }
         }
-        elseif (!is_null(Config::GetValue('database', $this->sInstance, 'read'))) {
+        elseif (!is_null(Config::getValue('database', $this->sInstance, 'read'))) {
             if ($this->oInstance['read']) {
                 return $this->oInstance['read'];
             }
             $sType = 'read';
         }
-        elseif (!is_null(Config::GetValue('database', $this->sInstance, 'write'))) {
+        elseif (!is_null(Config::getValue('database', $this->sInstance, 'write'))) {
             if ($this->oInstance['write']) {
                 return $this->oInstance['write'];
             }
             $sType = 'write';
         }
-        elseif (!is_null(Config::GetValue('database', $this->sInstance, 'name'))) {
+        elseif (!is_null(Config::getValue('database', $this->sInstance, 'name'))) {
             if (isset($this->oInstance)) {
                 return $this->oInstance;
             }
@@ -94,11 +94,11 @@ class PDOMysql implements DataInterface
         }
 
         if (is_null($sType)) {
-            $aOpts['Name'] = Config::GetValue('database', $this->sInstance, 'name');
-            $aOpts['Host'] = Config::GetValue('database', $this->sInstance, 'host');
-            $aOpts['User'] = Config::GetValue('database', $this->sInstance, 'user');
-            $aOpts['Pass'] = Config::GetValue('database', $this->sInstance, 'pass');
-            $aOpts['Port'] = Config::GetValue('database', $this->sInstance, 'port') ?: 3306;
+            $aOpts['Name'] = Config::getValue('database', $this->sInstance, 'name');
+            $aOpts['Host'] = Config::getValue('database', $this->sInstance, 'host');
+            $aOpts['User'] = Config::getValue('database', $this->sInstance, 'user');
+            $aOpts['Pass'] = Config::getValue('database', $this->sInstance, 'pass');
+            $aOpts['Port'] = Config::getValue('database', $this->sInstance, 'port') ?: 3306;
             if (in_array(null, $aOpts)) {
                 throw new UnexpectedValueException('Database connection information not properly defined');
             }
@@ -120,11 +120,11 @@ class PDOMysql implements DataInterface
             }
         }
         else {
-            $aOpts['Name'] = Config::GetValue('database', $this->sInstance, $sType, 'name');
-            $aOpts['Host'] = Config::GetValue('database', $this->sInstance, $sType, 'host');
-            $aOpts['User'] = Config::GetValue('database', $this->sInstance, $sType, 'user');
-            $aOpts['Pass'] = Config::GetValue('database', $this->sInstance, $sType, 'pass');
-            $aOpts['Port'] = Config::GetValue('database', $this->sInstance, $sType, 'port') ?: 3306;
+            $aOpts['Name'] = Config::getValue('database', $this->sInstance, $sType, 'name');
+            $aOpts['Host'] = Config::getValue('database', $this->sInstance, $sType, 'host');
+            $aOpts['User'] = Config::getValue('database', $this->sInstance, $sType, 'user');
+            $aOpts['Pass'] = Config::getValue('database', $this->sInstance, $sType, 'pass');
+            $aOpts['Port'] = Config::getValue('database', $this->sInstance, $sType, 'port') ?: 3306;
             if (in_array(null, $aOpts)) {
                 throw new UnexpectedValueException('Database connection information not properly defined');
             }
