@@ -35,16 +35,16 @@ class ResourceManagerTest extends PHPUnit_Framework_TestCase
     public function testStyle()
     {
         // @deprecated no styles ship with framework, need to rewrite this
-//        ResourceManager::AddStyle('site');
-//        $strRet = ResourceManager::LoadStyles();
-//        $this->assertNotEmpty($strRet);
-//
-//        // loads its style tag
-//        $this->assertRegExp(
-//            '/<link.*site\.css.*\/>/',
-//            $strRet,
-//            'Failed loading css tag'
-//        );
+        //        ResourceManager::AddStyle('site');
+        //        $strRet = ResourceManager::LoadStyles();
+        //        $this->assertNotEmpty($strRet);
+        //
+        //        // loads its style tag
+        //        $this->assertRegExp(
+        //            '/<link.*site\.css.*\/>/',
+        //            $strRet,
+        //            'Failed loading css tag'
+        //        );
     }
 
     /**

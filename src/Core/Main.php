@@ -17,8 +17,8 @@ class Main
     public static function getMainClass()
     {
         return class_exists('\App\Core\Main')
-                ? '\App\Core\Main'
-                : static::class;
+            ? '\App\Core\Main'
+            : static::class;
     }
 
     /**
@@ -30,69 +30,6 @@ class Main
         if (!empty($aRoute)) {
             static::loadRoute($aRoute);
         }
-    }
-
-    /**
-     * Initializes and runs the application
-     */
-    public static function init()
-    {
-        static::initSettings();
-        static::initErrors();
-        static::initSession();
-
-        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' &&
-            isset($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'application/json') === 0
-        ) {
-            $_POST = json_decode(file_get_contents('php://input'), true);
-        }
-    }
-
-    /**
-     * Loads application settings, usually files that define constants
-     */
-    protected static function initSettings()
-    {
-        $files = glob(dirname(__DIR__) . '/settings/*.php');
-        foreach ($files as $file) {
-            if (is_readable($file) && is_file($file)) {
-                require_once $file;
-            }
-        }
-    }
-
-    /**
-     * Sets the application error settings
-     */
-    protected static function initErrors()
-    {
-        if (IS_DEBUG) {
-            ini_set('error_reporting', E_ALL);
-            ini_set('display_errors', true);
-            ini_set('log_errors', false);
-        }
-        else {
-            ini_set('error_reporting', E_WARNING);
-            ini_set('display_errors', false);
-            ini_set('log_errors', true);
-            ini_set('error_log', ROOT . '/logs/' . date('Y-m-d') . '-error.log');
-        }
-    }
-
-    /**
-     * Initializes a session for this request
-     */
-    protected static function initSession()
-    {
-        session_name(Config::GetValue('security', 'sessions', 'name'));
-        session_set_cookie_params(
-            Config::GetValue('security', 'sessions', 'lifetime'),
-            '/',
-            parse_url(Config::GetValue('website', 'site_url'), PHP_URL_HOST),
-            false,
-            true
-        );
-        session_start();
     }
 
     /**
@@ -286,5 +223,68 @@ class Main
             }
             echo $mRet;
         }
+    }
+
+    /**
+     * Initializes and runs the application
+     */
+    public static function init()
+    {
+        static::initSettings();
+        static::initErrors();
+        static::initSession();
+
+        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' &&
+            isset($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'application/json') === 0
+        ) {
+            $_POST = json_decode(file_get_contents('php://input'), true);
+        }
+    }
+
+    /**
+     * Loads application settings, usually files that define constants
+     */
+    protected static function initSettings()
+    {
+        $files = glob(dirname(__DIR__) . '/settings/*.php');
+        foreach ($files as $file) {
+            if (is_readable($file) && is_file($file)) {
+                require_once $file;
+            }
+        }
+    }
+
+    /**
+     * Sets the application error settings
+     */
+    protected static function initErrors()
+    {
+        if (IS_DEBUG) {
+            ini_set('error_reporting', E_ALL);
+            ini_set('display_errors', true);
+            ini_set('log_errors', false);
+        }
+        else {
+            ini_set('error_reporting', E_WARNING);
+            ini_set('display_errors', false);
+            ini_set('log_errors', true);
+            ini_set('error_log', ROOT . '/logs/' . date('Y-m-d') . '-error.log');
+        }
+    }
+
+    /**
+     * Initializes a session for this request
+     */
+    protected static function initSession()
+    {
+        session_name(Config::GetValue('security', 'sessions', 'name'));
+        session_set_cookie_params(
+            Config::GetValue('security', 'sessions', 'lifetime'),
+            '/',
+            parse_url(Config::GetValue('website', 'site_url'), PHP_URL_HOST),
+            false,
+            true
+        );
+        session_start();
     }
 }

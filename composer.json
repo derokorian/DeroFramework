@@ -1,24 +1,24 @@
 {
-    "name": "derokorian/deroframework",
-    "description": "YAF - lightweight framework which provides routing, db abstraction, templates and configuration",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Ryan Pallas",
-            "email": "derokorian@gmail.com"
-        }
-    ],
-    "minimum-stability": "dev",
-    "require": {
-        "php": ">=7.0.0"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^5.2",
-        "codeclimate/php-test-reporter": "dev-master"
-    },
-    "autoload": {
-        "psr-4": {
-            "Dero\\": "src/"
-        }
+  "name": "derokorian/deroframework",
+  "description": "YAF - lightweight framework which provides routing, db abstraction, templates and configuration",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Ryan Pallas",
+      "email": "derokorian@gmail.com"
     }
+  ],
+  "minimum-stability": "dev",
+  "require": {
+    "php": ">=7.0.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^5.2",
+    "codeclimate/php-test-reporter": "dev-master"
+  },
+  "autoload": {
+    "psr-4": {
+      "Dero\\": "src/"
+    }
+  }
 }

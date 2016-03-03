@@ -15,8 +15,9 @@ namespace Dero\Core;
  *
  * @package Dero\Core
  */
-class Collection implements \Iterator,
-                            \Countable
+class Collection implements
+    \Iterator,
+    \Countable
 {
     protected $items = [];
     protected $index = 0;

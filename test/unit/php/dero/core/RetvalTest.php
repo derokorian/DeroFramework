@@ -37,11 +37,11 @@ class RetvalTest extends PHPUnit_Framework_TestCase
     {
         $aExceptions = [
             new Exception('first exception'),
-            new Exception('second exception')
+            new Exception('second exception'),
         ];
         $aErrors = [
             'first error',
-            'second error'
+            'second error',
         ];
         $oRetval = new Retval();
         $oRetval->AddError($aErrors[0], $aExceptions[0]);

@@ -48,7 +48,7 @@ class BaseController
         504 => 'Gateway Timeout',
         505 => 'HTTP Version Not Supported',
     ];
-    
+
     /**
      * Sets the $aOpts argument to include search parameters in from the request
      *

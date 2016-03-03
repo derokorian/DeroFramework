@@ -20,6 +20,6 @@ class TimingTest extends PHPUnit_Framework_TestCase
         $this->assertArrayHasKey('test', $aTimes);
 
         Timing::setHeaderTimings();
-//        $this->assertHeaderSet('X-Test-Timing', 'ms');
+        //        $this->assertHeaderSet('X-Test-Timing', 'ms');
     }
 }

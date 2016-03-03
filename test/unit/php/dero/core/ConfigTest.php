@@ -9,14 +9,14 @@ class ConfigTest extends PHPUnit_Framework_TestCase
         file_put_contents(
             ROOT . DS . 'src/config/test.json',
             json_encode([
-                'user' => 'myUser',
-                'pass' => 'myPass',
-                'complex' => [
-                    'configuration' => [
-                        'structure' => true
-                    ]
-                ]
-            ])
+                            'user'    => 'myUser',
+                            'pass'    => 'myPass',
+                            'complex' => [
+                                'configuration' => [
+                                    'structure' => true,
+                                ],
+                            ],
+                        ])
         );
 
         if (!file_exists(ROOT . DS . 'config')) {
@@ -26,9 +26,9 @@ class ConfigTest extends PHPUnit_Framework_TestCase
         file_put_contents(
             ROOT . DS . 'config/test.json',
             json_encode([
-                'pass' => 'testPass',
-                'custom' => 1234
-            ])
+                            'pass'   => 'testPass',
+                            'custom' => 1234,
+                        ])
         );
     }
 
