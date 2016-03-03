@@ -5,10 +5,7 @@
  * User: Ryan Pallas
  * Date: 12/6/13
  */
-define('ROOT', dirname(__DIR__));
-define('DS', DIRECTORY_SEPARATOR);
-
-require_once ROOT . '/vendor/autoload.php';
+require_once './bootstrap.php';
 
 use Dero\Core\Timing;
 
