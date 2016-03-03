@@ -190,7 +190,6 @@ class TemplateEngine
                                                   $strContent);
                         break;
                     default:
-                        // TODO: Does this really need to here? Not sure its actually useful as is...
                         foreach (self::$NAMESPACES as $ns) {
                             $class = $ns . $match;
                             if (class_exists($class)) {

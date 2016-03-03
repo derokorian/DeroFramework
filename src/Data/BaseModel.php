@@ -732,14 +732,6 @@ abstract class BaseModel
                     ) {
                         $bColWrong = true;
                     }
-
-                    // TODO: this doesn't work right, rethink model defaults
-                    //                    $def = preg_grep('/^default(.*)$/i', $aCol[DB_EXTRA]);
-                    //                    if (count($def) > 0) {
-                    //                        if ($aColMatch['Default'] != trim($def[0])) {
-                    //                            $bColWrong = true;
-                    //                        }
-                    //                    }
                 }
                 else {
                     if ($aColMatch['Null'] != 'NO') {
