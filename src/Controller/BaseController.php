@@ -53,24 +53,24 @@ class BaseController
      * Sets the $aOpts argument to include search parameters in from the request
      *
      * @param array $aOpts
-     * @param array $aParams
+     * @param int $iInput
      */
-    protected function setFilter(Array &$aOpts, Array $aParams)
+    protected function setFilter(Array &$aOpts, int $iInput)
     {
-        if (isset($aParams['id'])) {
-            $aOpts['id'] = $aParams['id'];
+        if (filter_has_var($iInput, 'id')) {
+            $aOpts['id'] = filter_input($iInput, 'id', FILTER_VALIDATE_INT);
         }
-        if (isset($aParams['name'])) {
-            $aOpts['name'] = $aParams['name'];
+        if (filter_has_var($iInput, 'name')) {
+            $aOpts['name'] = filter_input($iInput, 'name', FILTER_SANITIZE_STRING);
         }
-        if (isset($aParams['order'])) {
-            $aOpts['order_by'] = $aParams['order'];
+        if (filter_has_var($iInput, 'order')) {
+            $aOpts['order_by'] = filter_input($iInput, 'order', FILTER_SANITIZE_STRING);
         }
-        if (isset($aParams['rows'])) {
-            $aOpts['rows'] = (int) $aParams['rows'];
+        if (filter_has_var($iInput, 'rows')) {
+            $aOpts['rows'] = filter_input($iInput, 'rows', FILTER_VALIDATE_INT);
         }
-        if (isset($aParams['skip'])) {
-            $aOpts['skip'] = (int) $aParams['skip'];
+        if (filter_has_var($iInput, 'skip')) {
+            $aOpts['skip'] = filter_input($iInput, 'skip', FILTER_VALIDATE_INT);
         }
     }
 
