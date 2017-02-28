@@ -29,7 +29,7 @@ class Parameter
     {
         $this->SetName($Name);
         $this->SetValue($Value);
-        $this->SetType($Type);
+        $this->SetType($Type ?? DB_PARAM_STR);
     }
 
     public function __get($name)

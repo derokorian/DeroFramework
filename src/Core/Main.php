@@ -129,15 +129,15 @@ class Main
      */
     public static function loadRoute(array $aRoute)
     {
-        $oController = static::getController($aRoute);
-        $sMethod = static::getMethod($aRoute);
-        $aArgs = static::getArgs($aRoute);
-
         Timing::start('controller');
-        $mRet = $oController->{$sMethod}(...$aArgs);
-        Timing::end('controller');
 
-        static::handleResult($mRet);
+        static::handleResult(
+            (new $aRoute['controller'](
+                ...static::getControllerDependencies($aRoute)
+            ))->{static::getMethod($aRoute)}(...static::getArgs($aRoute))
+        );
+
+        Timing::end('controller');
     }
 
     /**
@@ -145,23 +145,18 @@ class Main
      *
      * @param array $aRoute
      *
-     * @return BaseController
+     * @return array
      */
-    protected static function getController(array $aRoute) : BaseController
+    protected static function getControllerDependencies(array $aRoute) : array
     {
-        if (empty($aRoute['dependencies'])) {
-            return new $aRoute['controller']();
-        }
-        else {
-            $aDeps = [];
-            foreach ($aRoute['dependencies'] as $strDependency) {
-                if (class_exists($strDependency)) {
-                    $aDeps[] = new $strDependency();
-                }
+        $aDeps = [];
+        foreach ($aRoute['dependencies'] as $strDependency) {
+            if (class_exists($strDependency)) {
+                $aDeps[] = new $strDependency();
             }
-
-            return new $aRoute['controller'](...$aDeps);
         }
+
+        return $aDeps;
     }
 
     /**
@@ -196,7 +191,7 @@ class Main
                 if (isset($aRoute['Match'][$arg])) {
                     $aArgs[] = $aRoute['Match'][$arg];
                 }
-                elseif (!is_numeric($arg)) {
+                else {
                     $aArgs[] = $arg;
                 }
             }
