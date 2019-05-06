@@ -19,7 +19,7 @@ class VersionController extends BaseController
 {
     const RE_CLASS = '/class\s+(\w+)\s+extends\s+%s/i';
     const RE_NAMESPACE = '/namespace\s+([\w\\\\]+)\s*;/i';
-    const RE_DEPENDENCIES = '/@depends ([a-z\\\\]+)/i';
+    const RE_DEPENDENCIES = '/@depends\s+([a-z\\\\]+)/i';
     const SH_GREP_CLASS = 'grep -ir -E "class \w+ extends %s" ' . ROOT . '/*';
     const SH_GREP_NS_PATTERN = 'grep -iE ^namespace.*$ %s';
 
