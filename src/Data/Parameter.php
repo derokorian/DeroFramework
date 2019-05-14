@@ -103,6 +103,9 @@ class Parameter
         elseif (is_int($Value)) {
             $this->SetType(DB_PARAM_INT);
         }
+        else if (is_float($Value)) {
+            $this->SetType(DB_PARAM_DEC);
+        }
         else {
             $this->SetType(DB_PARAM_STR);
         }
@@ -143,7 +146,7 @@ class Parameter
      */
     public function SetType($Type)
     {
-        $acceptable = [DB_PARAM_BOOL, DB_PARAM_INT, DB_PARAM_NULL, DB_PARAM_STR];
+        $acceptable = [DB_PARAM_BOOL, DB_PARAM_INT, DB_PARAM_NULL, DB_PARAM_STR, DB_PARAM_DEC];
         if (!in_array($Type, $acceptable, true)) {
             throw new \InvalidArgumentException('type of parameters must be DB_PARAM_*');
         }

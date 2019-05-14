@@ -218,7 +218,7 @@ class PDOMysql implements DataInterface
             );
         }
         else {
-            header(sprintf('X-Query(%d): %s', $i++, $strQuery));
+            header(sprintf('X-Query-%d: %s', $i++, $strQuery));
         }
     }
 
