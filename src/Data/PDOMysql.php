@@ -7,6 +7,8 @@ use Exception;
 use InvalidArgumentException;
 use PDO;
 use PDOException;
+use PDOStatement;
+use StdClass;
 use UnexpectedValueException;
 
 /**
@@ -20,7 +22,7 @@ use UnexpectedValueException;
 class PDOMysql implements DataInterface
 {
     /**
-     * @var \PDOStatement
+     * @var PDOStatement
      */
     protected $oPDOStatement;
     protected $sInstance;
@@ -41,11 +43,62 @@ class PDOMysql implements DataInterface
     }
 
     /**
+     * (non-PHPdoc)
+     *
+     * @param string $Query
+     *
+     * @return DataInterface allows method chaining
+     * @throws DataException
+     */
+    public function Query(string $Query): DataInterface
+    {
+        $Query = preg_replace(["/[\r\n]+/", '/\s+/'], " ", $Query);
+        static::LogQuery($Query);
+        $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
+        try {
+            $this->oPDOStatement = $oCon->query($Query);
+            if ($this->oPDOStatement === false) {
+                $e = $oCon->errorInfo();
+                throw new DataException('Error running query in ' . __CLASS__ . '::'
+                                        . __FUNCTION__ . '(' . $e[2] . ')');
+            }
+
+            return $this;
+        } catch (PDOException $e) {
+            throw new DataException('Error running query in ' . __CLASS__ . '::' . __FUNCTION__, 0, $e);
+        }
+    }
+
+    /**
+     * Logs query to file or headers during debug mode
+     *
+     * @param string $strQuery
+     */
+    protected static function LogQuery(string $strQuery)
+    {
+        static $i = 0;
+        if (!IS_DEBUG) {
+            return;
+        }
+
+        if (PHP_SAPI == 'cli') {
+            file_put_contents(
+                '/tmp/query-' . date('ymdhm') . '.log',
+                sprintf("query(%d): %s\n", $i++, $strQuery),
+                FILE_APPEND
+            );
+        }
+        else {
+            header(sprintf('X-Query-%d: %s', $i++, $strQuery));
+        }
+    }
+
+    /**
      * Opens a connection for a query
      *
      * @param bool $bIsRead
      *
-     * @returns PDO
+     * @return PDO
      * @throws UnexpectedValueException
      * @throws DataException
      */
@@ -155,7 +208,7 @@ class PDOMysql implements DataInterface
      * @return DataInterface allows method chaining
      * @throws DataException
      */
-    public function Prepare(string $Query) : DataInterface
+    public function Prepare(string $Query): DataInterface
     {
         $Query = preg_replace(["/[\r\n]+/", '/\s+/'], " ", $Query);
         static::LogQuery($Query);
@@ -178,61 +231,14 @@ class PDOMysql implements DataInterface
     /**
      * (non-PHPdoc)
      *
-     * @param string $Query
-     *
-     * @return DataInterface allows method chaining
-     * @throws DataException
-     */
-    public function Query(string $Query) : DataInterface
-    {
-        $Query = preg_replace(["/[\r\n]+/", '/\s+/'], " ", $Query);
-        static::LogQuery($Query);
-        $oCon = $this->OpenConnection(substr(trim($Query), 0, 6) == 'SELECT');
-        try {
-            $this->oPDOStatement = $oCon->query($Query);
-            if ($this->oPDOStatement === false) {
-                $e = $oCon->errorInfo();
-                throw new DataException('Error running query in ' . __CLASS__ . '::'
-                                        . __FUNCTION__ . '(' . $e[2] . ')');
-            }
-
-            return $this;
-        } catch (PDOException $e) {
-            throw new DataException('Error running query in ' . __CLASS__ . '::' . __FUNCTION__, 0, $e);
-        }
-    }
-
-
-    protected static function LogQuery(string $strQuery)
-    {
-        static $i = 0;
-        if (!IS_DEBUG) {
-            return;
-        }
-
-        if (PHP_SAPI == 'cli') {
-            file_put_contents(
-                '/tmp/query-' . date('ymdhm') . '.log',
-                sprintf("query(%d): %s\n", $i++, $strQuery),
-                FILE_APPEND
-            );
-        }
-        else {
-            header(sprintf('X-Query-%d: %s', $i++, $strQuery));
-        }
-    }
-
-    /**
-     * (non-PHPdoc)
-     *
-     * @see DataInterface::BindParams()
-     *
      * @param ParameterCollection $Params
      *
      * @return DataInterface allows method chaining
      * @throws DataException
+     * @see DataInterface::BindParams()
+     *
      */
-    public function BindParams(ParameterCollection $Params) : DataInterface
+    public function BindParams(ParameterCollection $Params): DataInterface
     {
         foreach ($Params as $Param) {
             if ($Param instanceof Parameter) {
@@ -246,14 +252,14 @@ class PDOMysql implements DataInterface
     /**
      * (non-PHPdoc)
      *
-     * @see DataInterface::BindParam()
-     *
      * @param Parameter $Param
      *
      * @return DataInterface allows method chaining
      * @throws DataException
+     * @see DataInterface::BindParam()
+     *
      */
-    public function BindParam(Parameter $Param) : DataInterface
+    public function BindParam(Parameter $Param): DataInterface
     {
         if (!$this->oPDOStatement) {
             return $this;
@@ -270,11 +276,11 @@ class PDOMysql implements DataInterface
     /**
      * (non-PHPdoc)
      *
-     * @see DataInterface::Execute()
      * @return DataInterface allows method chaining
      * @throws DataException
+     * @see DataInterface::Execute()
      */
-    public function Execute() : DataInterface
+    public function Execute(): DataInterface
     {
         if (!$this->oPDOStatement) {
             return $this;
@@ -297,11 +303,11 @@ class PDOMysql implements DataInterface
     /**
      * (non-PHPdoc)
      *
-     * @see DataInterface::GetRow()
-     *
      * @param $mClass
      *
-     * @return \StdClass object with properties mapped to selected columns
+     * @return bool|StdClass object with properties mapped to selected columns
+     * @see DataInterface::GetRow()
+     *
      */
     public function Get($mClass = null)
     {
@@ -323,11 +329,11 @@ class PDOMysql implements DataInterface
     /**
      * (non-PHPdoc)
      *
-     * @see DataInterface::GetAll()
-     *
      * @param $strClass
      *
-     * @return Array(StandardObject) array of objects with properties mapped to selected columns
+     * @return bool|array(StandardObject) array of objects with properties mapped to selected columns
+     * @see DataInterface::GetAll()
+     *
      */
     public function GetAll($strClass = null)
     {
@@ -343,8 +349,8 @@ class PDOMysql implements DataInterface
     /**
      * (non-PHPdoc)
      *
-     * @see DataInterface::GetScalar()
      * @return mixed
+     * @see DataInterface::GetScalar()
      */
     public function GetScalar()
     {
@@ -353,6 +359,21 @@ class PDOMysql implements DataInterface
         }
 
         return $this->oPDOStatement->fetchColumn(0);
+    }
+
+    /**
+     * (non-PHPdoc)
+     *
+     * @return mixed
+     * @see DataInterface::RowCount()
+     */
+    public function RowCount()
+    {
+        if (!$this->oPDOStatement) {
+            return false;
+        }
+
+        return $this->oPDOStatement->rowCount();
     }
 }
 

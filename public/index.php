@@ -6,14 +6,12 @@
  * Date: 12/6/13
  */
 require_once './bootstrap.php';
-require_once ROOT . '/vendor/autoload.php';
 
+use Dero\Core\Main;
 use Dero\Core\Timing;
 
-$Main = class_exists('\App\Core\Main')
-    ? '\App\Core\Main'
-    : \Dero\Core\Main::class;
 
+$Main = Main::getMainClass();
 $Main::init();
 
 if (IS_DEBUG) {

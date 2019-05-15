@@ -2,6 +2,10 @@
 
 namespace Dero\Data;
 
+use InvalidArgumentException;
+use PDO;
+use UnexpectedValueException;
+
 /**
  * Classed used to define the parameters for prepared queries
  *
@@ -37,7 +41,7 @@ class Parameter
         if (method_exists($this, "Get$name")) {
             return $this->{"Get$name"}();
         }
-        throw new \UnexpectedValueException('Undefined property ' . $name . ' in ' . __CLASS__);
+        throw new UnexpectedValueException('Undefined property ' . $name . ' in ' . __CLASS__);
     }
 
     public function __set($name, $value)
@@ -45,16 +49,16 @@ class Parameter
         if (method_exists($this, "Set$name")) {
             return $this->{"Set$name"}($value);
         }
-        throw new \UnexpectedValueException('Undefined property ' . $name . ' in ' . __CLASS__);
+        throw new UnexpectedValueException('Undefined property ' . $name . ' in ' . __CLASS__);
     }
 
     /**
      * Gets the name of the parameter
      *
-     * @throws \UnexpectedValueException
      * @return string
+     * @throws UnexpectedValueException
      */
-    public function GetName() : string
+    public function GetName(): string
     {
         return ':' . $this->Name;
     }
@@ -64,13 +68,13 @@ class Parameter
      *
      * @param string $Name
      *
-     * @throws \InvalidArgumentException
      * @return void
+     * @throws InvalidArgumentException
      */
     public function SetName(string $Name)
     {
         if (empty($Name)) {
-            throw new \InvalidArgumentException('name of parameters must not be empty');
+            throw new InvalidArgumentException('name of parameters must not be empty');
         }
         $this->Name = $Name;
     }
@@ -103,12 +107,13 @@ class Parameter
         elseif (is_int($Value)) {
             $this->SetType(DB_PARAM_INT);
         }
-        else if (is_float($Value)) {
+        elseif (is_float($Value)) {
             $this->SetType(DB_PARAM_DEC);
         }
         else {
             $this->SetType(DB_PARAM_STR);
         }
+
 
         $this->Value = $Value;
     }
@@ -116,23 +121,23 @@ class Parameter
     /**
      * Gets the type of the parameter, determined by the Engine
      *
-     * @throws \UnexpectedValueException
      * @return number
+     * @throws UnexpectedValueException
      */
     public function GetType()
     {
         switch ($this->Type) {
             case DB_PARAM_INT:
-                return \PDO::PARAM_INT;
+                return PDO::PARAM_INT;
             case DB_PARAM_BOOL:
-                return \PDO::PARAM_BOOL;
+                return PDO::PARAM_BOOL;
             case DB_PARAM_NULL:
-                return \PDO::PARAM_NULL;
+                return PDO::PARAM_NULL;
             case DB_PARAM_STR:
             case DB_PARAM_DEC:
-                return \PDO::PARAM_STR;
+                return PDO::PARAM_STR;
             default:
-                throw new \UnexpectedValueException('Unexpected value found in Parameter::Type for PDO::MySQL');
+                throw new UnexpectedValueException('Unexpected value found in Parameter::Type for PDO::MySQL');
         }
     }
 
@@ -141,14 +146,14 @@ class Parameter
      *
      * @param int $Type One of (DB_PARAM_STR, DB_PARAM_INT, DB_PARAM_BOOl, DB_PARAM_NULL)
      *
-     * @throws \InvalidArgumentException
      * @return void
+     * @throws InvalidArgumentException
      */
     public function SetType($Type)
     {
         $acceptable = [DB_PARAM_BOOL, DB_PARAM_INT, DB_PARAM_NULL, DB_PARAM_STR, DB_PARAM_DEC];
         if (!in_array($Type, $acceptable, true)) {
-            throw new \InvalidArgumentException('type of parameters must be DB_PARAM_*');
+            throw new InvalidArgumentException('type of parameters must be DB_PARAM_*');
         }
         $this->Type = $Type;
     }

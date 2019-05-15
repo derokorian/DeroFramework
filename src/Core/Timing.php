@@ -25,7 +25,7 @@ class Timing
         }
     }
 
-    public static function getTimings() : array
+    public static function getTimings(): array
     {
         return self::$aTimes;
     }

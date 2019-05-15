@@ -4,8 +4,13 @@ namespace Dero\Controller;
 
 use Dero\Core\Config;
 use Dero\Core\Timing;
+use Dero\Data\BaseModel;
+use Dero\Data\DataInterface;
 use Dero\Data\Factory;
 use Dero\Data\Parameter;
+use Exception;
+use OutOfBoundsException;
+use ReflectionClass;
 
 /**
  * Version controller
@@ -23,7 +28,7 @@ class VersionController extends BaseController
     const SH_GREP_CLASS = 'grep -ir -E "class \w+ extends %s" ' . ROOT . '/*';
     const SH_GREP_NS_PATTERN = 'grep -iE ^namespace.*$ %s';
 
-    /** @var \Dero\Data\DataInterface */
+    /** @var DataInterface */
     private $db;
 
     /** @var string[] */
@@ -44,10 +49,40 @@ class VersionController extends BaseController
         try {
             $this->verifyModels();
             $this->verifyTableData();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // probably do something else here
             throw $e;
         }
+    }
+
+    private function verifyModels()
+    {
+        $this->aModels = $this->getModels();
+        foreach ($this->aModels as $strModel => $strFile) {
+            $this->runModel($strModel, $strFile);
+        }
+        echo "Tables updated successfully.\n";
+    }
+
+    private function getModels(string $sExtends = 'BaseModel'): array
+    {
+        $aRet = [];
+        exec(sprintf(self::SH_GREP_CLASS, $sExtends), $aOutput, $iRet);
+        if ($iRet < 2) {
+            foreach ($aOutput as $strOut) {
+                $strFile = $strClass = '';
+                $this->setFileAndClass($strOut, $sExtends, $strFile, $strClass);
+
+                $aRet[$strClass] = realpath($strFile);
+                $t = explode('\\', $strClass);
+                $aRet = array_merge($aRet, $this->getModels(end($t)));
+            }
+        }
+        else {
+            throw new OutOfBoundsException("grep returned $iRet searching for classes extending $sExtends\n");
+        }
+
+        return $aRet;
     }
 
     private function setFileAndClass(string $sLine, string $sExtends, string &$sFile, string &$sClass)
@@ -68,49 +103,6 @@ class VersionController extends BaseController
         }
     }
 
-    private function getModels(string $sExtends = 'BaseModel') : array
-    {
-        $aRet = [];
-        exec(sprintf(self::SH_GREP_CLASS, $sExtends), $aOutput, $iRet);
-        if ($iRet < 2) {
-            foreach ($aOutput as $strOut) {
-                $strFile = $strClass = '';
-                $this->setFileAndClass($strOut, $sExtends, $strFile, $strClass);
-
-                $aRet[$strClass] = realpath($strFile);
-                $t = explode('\\', $strClass);
-                $aRet = array_merge($aRet, $this->getModels(end($t)));
-            }
-        }
-        else {
-            throw new \OutOfBoundsException("grep returned $iRet searching for classes extending $sExtends\n");
-        }
-
-        return $aRet;
-    }
-
-    private function verifyModels()
-    {
-        $this->aModels = $this->getModels();
-        foreach ($this->aModels as $strModel => $strFile) {
-            $this->runModel($strModel, $strFile);
-        }
-        echo "Tables updated successfully.\n";
-    }
-
-    private function getDependencies(string $sClass) : array
-    {
-        $oRefClass = new \ReflectionClass($sClass);
-        $aDeps = [];
-
-        $sDoc = $oRefClass->getDocComment();
-        if (preg_match_all(self::RE_DEPENDENCIES, $sDoc, $aMatches)) {
-            $aDeps = $aMatches[1];
-        }
-
-        return $aDeps;
-    }
-
     private function runModel(string $sClass, string $sFile)
     {
         Timing::start($sClass);
@@ -122,7 +114,7 @@ class VersionController extends BaseController
             isset($this->aModels[$sDepend]) && $this->runModel($sDepend, $this->aModels[$sDepend]);
         }
 
-        /** @var \Dero\Data\BaseModel $oModel */
+        /** @var BaseModel $oModel */
         $oModel = new $sClass($this->db);
         $oRet = $oModel->VerifyModelDefinition();
         if ($oRet->hasFailure()) {
@@ -144,6 +136,19 @@ class VersionController extends BaseController
         Timing::end($sClass);
     }
 
+    private function getDependencies(string $sClass): array
+    {
+        $oRefClass = new ReflectionClass($sClass);
+        $aDeps = [];
+
+        $sDoc = $oRefClass->getDocComment();
+        if (preg_match_all(self::RE_DEPENDENCIES, $sDoc, $aMatches)) {
+            $aDeps = $aMatches[1];
+        }
+
+        return $aDeps;
+    }
+
     private function verifyTableData()
     {
         foreach ($this->getTableData() as $aTableData) {
@@ -159,60 +164,6 @@ class VersionController extends BaseController
                 }
             }
         }
-    }
-
-    private function prepareInsert($aTableData, $aDataKeys)
-    {
-        $this->db->Prepare(sprintf(
-                               'INSERT INTO `%s` (`%s`,`%s`) VALUES (:%s,%s)',
-                               $aTableData['target'],
-                               implode('`,`', $aDataKeys),
-                               implode('`,`', $aTableData['timestamps']),
-                               implode(',:', $aDataKeys),
-                               implode(',', array_fill(0, count($aTableData['timestamps']), 'NOW()'))
-                           ));
-    }
-
-    private function executeInsert($aDataKeys, $aRow)
-    {
-        foreach ($aDataKeys as $sKey) {
-            $this->db->BindParam(new Parameter($sKey, $aRow[$sKey]));
-        }
-        $this->db->Execute();
-    }
-
-    private function getExistingData($aTableData)
-    {
-        $sSelect = sprintf(
-            'SELECT * FROM `%s` WHERE %s',
-            $aTableData['target'],
-            $this->buildDataWhere($aTableData['identifiers'], $aTableData['data'])
-        );
-
-        return $this->db->Query($sSelect)
-                        ->GetAll();
-    }
-
-    private function checkIfDataExists(array $aIdentifiers, array $aExistingData, array $aRow) : bool
-    {
-        $bRowExists = false;
-        foreach ($aExistingData as $mRow) {
-            $mRow = (array) $mRow;
-            $bIsThisRow = true;
-            foreach ($aIdentifiers as $sKey) {
-                if (!isset($mRow[$sKey]) ||
-                    $mRow[$sKey] != $aRow[$sKey]
-                ) {
-                    $bIsThisRow = false;
-                    break;
-                }
-            }
-            if ($bIsThisRow) {
-                $bRowExists = true;
-            }
-        }
-
-        return $bRowExists;
     }
 
     private function getTableData()
@@ -251,7 +202,7 @@ class VersionController extends BaseController
         return $mData;
     }
 
-    private function validateTableData(array $aTableData) : bool
+    private function validateTableData(array $aTableData): bool
     {
         $bRetval = !empty($aTableData['target'])
                    && !empty($aTableData['identifiers'])
@@ -272,7 +223,19 @@ class VersionController extends BaseController
         return $bRetval;
     }
 
-    private function buildDataWhere(array $aIdentifiers, array $aData) : string
+    private function getExistingData($aTableData)
+    {
+        $sSelect = sprintf(
+            'SELECT * FROM `%s` WHERE %s',
+            $aTableData['target'],
+            $this->buildDataWhere($aTableData['identifiers'], $aTableData['data'])
+        );
+
+        return $this->db->Query($sSelect)
+                        ->GetAll();
+    }
+
+    private function buildDataWhere(array $aIdentifiers, array $aData): string
     {
         $aChecks = [];
         foreach ($aData as $aRow) {
@@ -289,5 +252,47 @@ class VersionController extends BaseController
         }
 
         return implode(' OR ', $aChecks);
+    }
+
+    private function prepareInsert($aTableData, $aDataKeys)
+    {
+        $this->db->Prepare(sprintf(
+                               'INSERT INTO `%s` (`%s`,`%s`) VALUES (:%s,%s)',
+                               $aTableData['target'],
+                               implode('`,`', $aDataKeys),
+                               implode('`,`', $aTableData['timestamps']),
+                               implode(',:', $aDataKeys),
+                               implode(',', array_fill(0, count($aTableData['timestamps']), 'NOW()'))
+                           ));
+    }
+
+    private function checkIfDataExists(array $aIdentifiers, array $aExistingData, array $aRow): bool
+    {
+        $bRowExists = false;
+        foreach ($aExistingData as $mRow) {
+            $mRow = (array) $mRow;
+            $bIsThisRow = true;
+            foreach ($aIdentifiers as $sKey) {
+                if (!isset($mRow[$sKey]) ||
+                    $mRow[$sKey] != $aRow[$sKey]
+                ) {
+                    $bIsThisRow = false;
+                    break;
+                }
+            }
+            if ($bIsThisRow) {
+                $bRowExists = true;
+            }
+        }
+
+        return $bRowExists;
+    }
+
+    private function executeInsert($aDataKeys, $aRow)
+    {
+        foreach ($aDataKeys as $sKey) {
+            $this->db->BindParam(new Parameter($sKey, $aRow[$sKey]));
+        }
+        $this->db->Execute();
     }
 }

@@ -3,6 +3,7 @@
 namespace Dero\Data;
 
 use Dero\Core\Collection;
+use InvalidArgumentException;
 
 /**
  * Iterable container for multiple Parameters
@@ -17,8 +18,8 @@ class ParameterCollection extends Collection
      *
      * @param Parameter $aParam
      *
-     * @throws
      * @return ParameterCollection
+     * @throws
      */
     public function Add($aParam)
     {
@@ -26,7 +27,7 @@ class ParameterCollection extends Collection
             parent::add($aParam);
         }
         else {
-            throw new \InvalidArgumentException('Only \Dero\Core\Parameter may be added to ' . __CLASS__);
+            throw new InvalidArgumentException('Only \Dero\Core\Parameter may be added to ' . __CLASS__);
         }
 
         return $this;

@@ -2,6 +2,8 @@
 
 namespace Dero\Core;
 
+use UnexpectedValueException;
+
 /**
  * Class TemplateEngine
  *
@@ -20,7 +22,7 @@ class TemplateEngine
      *
      * @return mixed
      */
-    public static function LoadView(string $strView, Array $vars = []) : string
+    public static function LoadView(string $strView, Array $vars = []): string
     {
         $aExt = Config::getValue('website', 'template', 'extensions');
         $aPath = Config::getValue('website', 'template', 'paths');
@@ -44,7 +46,7 @@ class TemplateEngine
      *
      * @return mixed
      */
-    public static function ParseTemplate(string $strContent, Array $vars = []) : string
+    public static function ParseTemplate(string $strContent, Array $vars = []): string
     {
         static::replaceIterations($strContent, $vars);
         static::callMethodArgs($strContent, $vars);
@@ -57,14 +59,15 @@ class TemplateEngine
     /**
      * Replaces iterations in a given template
      *
-     * @example <ul>
-     *              {each|array>entry}
-     *                  <li>{entry}</li>
-     *              {/each}
-     *          </ul>
-     *
      * @param       $strContent
      * @param array $vars
+     *
+     * @example         <ul>
+     *                  {each|array>entry}
+     *                  <li>{entry}</li>
+     *                  {/each}
+     *                  </ul>
+     *
      */
     protected static function replaceIterations(string &$strContent, array $vars = [])
     {
@@ -87,12 +90,13 @@ class TemplateEngine
      * Calls static methods or global with the static keyword
      *   with arguments, which maybe in the given args
      *
+     * @param       $strContent
+     * @param array $vars
+     *
      * @example {static>date(Y)}
      *          {ResourceManager>AddStyle(libraries/bbcodes)}
      *          {ResourceManager>LoadStyles()}
      *
-     * @param       $strContent
-     * @param array $vars
      */
     protected static function callMethodArgs(string &$strContent, array $vars = [])
     {
@@ -132,11 +136,11 @@ class TemplateEngine
                         $strContent = str_replace($match, $strReplace, $strContent);
                     }
                     else {
-                        throw new \UnexpectedValueException('Method not found (' . $class . '::' . $method . ')');
+                        throw new UnexpectedValueException('Method not found (' . $class . '::' . $method . ')');
                     }
                 }
                 else {
-                    throw new \UnexpectedValueException('Class not found (' . $class . ')');
+                    throw new UnexpectedValueException('Class not found (' . $class . ')');
                 }
                 $strContent = str_replace($match, '', $strContent);
             }
@@ -146,13 +150,14 @@ class TemplateEngine
     /**
      * Replaces inline templates, any direct access of givens vars, constants or super globals
      *
+     * @param       $strContent
+     * @param array $vars
+     *
      * @example {tpl|user/login_header} Loading an addition template inline
      *          {_POST|username} IE saving form values on submit when not complete
      *          {PHP_INT_MAX}  Global constants work as well
      *          {title} an offset in the given $vars
      *
-     * @param       $strContent
-     * @param array $vars
      */
     protected static function replaceTplAndVars(string &$strContent, array $vars = [])
     {
@@ -211,11 +216,12 @@ class TemplateEngine
     /**
      * Replaces vars in the template with the given var, or a default if not found
      *
+     * @param       $strContent
+     * @param array $vars
+     *
      * @example {username|Enter username}
      *          {amount_ordered|0}
      *
-     * @param       $strContent
-     * @param array $vars
      */
     protected static function replaceVarsWithDefault(string &$strContent, array $vars = [])
     {

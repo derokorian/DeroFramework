@@ -2,6 +2,8 @@
 
 namespace Dero\Core;
 
+use OutOfBoundsException;
+
 /**
  * Class ResourceManager
  *
@@ -47,7 +49,8 @@ class ResourceManager
         string $url,
         array $known,
         array &$target
-    ) {
+    )
+    {
         // Check if requesting a configured resource
         if (($k = array_search($filename, array_column($known, 'name'))) !== false) {
             // Check if we already added it
@@ -75,12 +78,12 @@ class ResourceManager
                 $target[] = self::genSrc($filename, $url);
             }
             else {
-                throw new \OutOfBoundsException('Unable to read resource ' . $filename);
+                throw new OutOfBoundsException('Unable to read resource ' . $filename);
             }
         }
     }
 
-    private static function genSrc(string $strSrc, string $strBaseUrl) : string
+    private static function genSrc(string $strSrc, string $strBaseUrl): string
     {
         if (substr($strSrc, 0, 2) == '//') {
             return $strSrc;
@@ -115,7 +118,7 @@ class ResourceManager
      *
      * @return mixed
      */
-    public static function loadScripts() : string
+    public static function loadScripts(): string
     {
         return TemplateEngine::LoadView('scripts', ['scripts' => self::$scripts]);
     }
@@ -125,7 +128,7 @@ class ResourceManager
      *
      * @return mixed
      */
-    public static function loadStyles() : string
+    public static function loadStyles(): string
     {
         return TemplateEngine::LoadView('styles', ['styles' => static::$styles]);
     }

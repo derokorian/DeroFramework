@@ -11,16 +11,19 @@
 
 namespace Dero\Data;
 
+use UnexpectedValueException;
+
 class Factory
 {
     /**
-     * @throws \UnexpectedValueException
-     *
      * @param string $InstanceName The name of the connection
      *
      * @return DataInterface
+     * @throws UnexpectedValueException
+     * @throws \Exception
+     *
      */
-    public static function GetDataInterface(string $InstanceName) : DataInterface
+    public static function GetDataInterface(string $InstanceName): DataInterface
     {
         return new PDOMysql($InstanceName);
     }

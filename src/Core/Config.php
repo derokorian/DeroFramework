@@ -22,8 +22,8 @@ class Config
      *
      * @param $args array[string] The name(s) of the configuration parameter to get
      *
-     * @example config::GetValue('database','default','engine')
      * @return mixed value of the configuration or null if not found
+     * @example config::GetValue('database','default','engine')
      */
     public static function getValue(...$args)
     {
@@ -74,7 +74,7 @@ class Config
      * @param mixed $aConfig
      * @param mixed $aVal
      *
-     * @returns array
+     * @return array
      */
     private static function mergeConfig(Array $aConfig, Array $aVal)
     {

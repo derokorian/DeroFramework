@@ -2,6 +2,8 @@
 
 namespace Dero\Core;
 
+use Exception;
+
 /**
  * Class Retval
  *
@@ -45,9 +47,9 @@ class Retval
      * Adds an error condition
      *
      * @param                 $strMessage
-     * @param \Exception|null $oException
+     * @param Exception|null  $oException
      */
-    public function addError($strMessage, \Exception $oException = null)
+    public function addError($strMessage, Exception $oException = null)
     {
         $this->strError[] = $strMessage;
         $this->oException[] = $oException;

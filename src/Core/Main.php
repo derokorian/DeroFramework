@@ -10,8 +10,6 @@
 
 namespace Dero\Core;
 
-use Dero\Controller\BaseController;
-
 class Main
 {
     public static function getMainClass()
@@ -39,7 +37,7 @@ class Main
      *
      * @return array
      */
-    public static function findRoute(string $sRouteURI = null) : array
+    public static function findRoute(string $sRouteURI = null): array
     {
         $strURI = $sRouteURI ?? static::getRouteURI();
         $aRoutes = static::getDefinedRoutes();
@@ -80,7 +78,7 @@ class Main
      *
      * @return string
      */
-    protected static function getRouteURI() : string
+    protected static function getRouteURI(): string
     {
         if (PHP_SAPI === 'cli') {
             define('IS_API_REQUEST', false);
@@ -107,7 +105,7 @@ class Main
      *
      * @return array
      */
-    protected static function getDefinedRoutes() : array
+    protected static function getDefinedRoutes(): array
     {
         static $aRoutes = [];
 
@@ -141,13 +139,33 @@ class Main
     }
 
     /**
+     * Outputs the result of the controller
+     *
+     * @param $mRet
+     */
+    protected static function handleResult($mRet)
+    {
+        if (is_scalar($mRet)) {
+            echo $mRet;
+        }
+        elseif (!is_null($mRet)) {
+            $mRet = json_encode($mRet);
+            if (PHP_SAPI !== 'cli') {
+                header('Content-Type: application/json');
+                header('Content-Length: ' . strlen($mRet));
+            }
+            echo $mRet;
+        }
+    }
+
+    /**
      * Gets a controller object from the given route definition
      *
      * @param array $aRoute
      *
      * @return array
      */
-    protected static function getControllerDependencies(array $aRoute) : array
+    protected static function getControllerDependencies(array $aRoute): array
     {
         $aDeps = [];
         foreach ($aRoute['dependencies'] as $strDependency) {
@@ -166,7 +184,7 @@ class Main
      *
      * @return string
      */
-    protected static function getMethod(array $aRoute) : string
+    protected static function getMethod(array $aRoute): string
     {
         if (is_numeric($aRoute['method'])) {
             return $aRoute['Match'][$aRoute['method']];
@@ -183,7 +201,7 @@ class Main
      *
      * @return array
      */
-    protected static function getArgs(array $aRoute) : array
+    protected static function getArgs(array $aRoute): array
     {
         $aArgs = [];
         if (isset($aRoute['args']) && is_array($aRoute['args'])) {
@@ -198,26 +216,6 @@ class Main
         }
 
         return $aArgs;
-    }
-
-    /**
-     * Outputs the result of the controller
-     *
-     * @param $mRet
-     */
-    protected static function handleResult($mRet)
-    {
-        if (is_scalar($mRet)) {
-            echo $mRet;
-        }
-        elseif (!is_null($mRet)) {
-            $mRet = json_encode($mRet);
-            if (PHP_SAPI !== 'cli') {
-                header('Content-Type: application/json');
-                header('Content-Length: ' . strlen($mRet));
-            }
-            echo $mRet;
-        }
     }
 
     /**

@@ -7,11 +7,7 @@
  * Date: 12/6/13
  */
 require_once './bootstrap.php';
-require_once ROOT . '/vendor/autoload.php';
 
-$Main = class_exists('\App\Core\Main')
-    ? '\App\Core\Main'
-    : \Dero\Core\Main::class;
-
+$Main = \Dero\Core\Main::getMainClass();
 $Main::init();
 $Main::run();

@@ -16,7 +16,7 @@ interface DataInterface
      *
      * @return DataInterface
      */
-    public function Prepare(string $Query) : DataInterface;
+    public function Prepare(string $Query): DataInterface;
 
     /**
      * Executes a query directly
@@ -25,7 +25,7 @@ interface DataInterface
      *
      * @return DataInterface
      */
-    public function Query(string $Query) : DataInterface;
+    public function Query(string $Query): DataInterface;
 
     /**
      * Binds a collection of parameters to a prepared query
@@ -34,7 +34,7 @@ interface DataInterface
      *
      * @return DataInterface
      */
-    public function BindParams(ParameterCollection $Params) : DataInterface;
+    public function BindParams(ParameterCollection $Params): DataInterface;
 
     /**
      * Binds a single parameter to a prepared query
@@ -43,14 +43,14 @@ interface DataInterface
      *
      * @return DataInterface
      */
-    public function BindParam(Parameter $Param) : DataInterface;
+    public function BindParam(Parameter $Param): DataInterface;
 
     /**
      * Executes a prepared query
      *
      * @return DataInterface
      */
-    public function Execute() : DataInterface;
+    public function Execute(): DataInterface;
 
     /**
      * Gets a single row from a result set
@@ -70,4 +70,9 @@ interface DataInterface
      * Gets a singular value from the first row and column
      */
     public function GetScalar();
+
+    /**
+     * Gets the row count from the statement object
+     */
+    public function RowCount();
 }

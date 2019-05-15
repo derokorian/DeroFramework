@@ -4,7 +4,7 @@ namespace Dero\Data;
 
 abstract class Contract
 {
-    public static function fromArray(array $aProps) : Contract
+    public static function fromArray(array $aProps): Contract
     {
         $s = new static();
         foreach ($aProps as $k => $v) {

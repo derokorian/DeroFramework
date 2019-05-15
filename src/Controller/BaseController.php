@@ -2,6 +2,8 @@
 
 namespace Dero\Controller;
 
+use InvalidArgumentException;
+
 class BaseController
 {
     protected static $response_status_messages = [
@@ -53,7 +55,7 @@ class BaseController
      * Sets the $aOpts argument to include search parameters in from the request
      *
      * @param array $aOpts
-     * @param int $iInput
+     * @param int   $iInput
      */
     protected function setFilter(Array &$aOpts, int $iInput)
     {
@@ -83,7 +85,7 @@ class BaseController
     final protected function responseStatus(int $iCode)
     {
         if (!isset(static::$response_status_messages[$iCode])) {
-            throw new \InvalidArgumentException("$iCode is not a recognized response status");
+            throw new InvalidArgumentException("$iCode is not a recognized response status");
         }
 
         $str = filter_input(INPUT_SERVER, 'SERVER_PROTOCOL', FILTER_SANITIZE_STRING);

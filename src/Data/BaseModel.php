@@ -4,6 +4,9 @@ namespace Dero\Data;
 
 use Dero\Core\Config;
 use Dero\Core\Retval;
+use Exception;
+use RuntimeException;
+use UnexpectedValueException;
 
 /**
  * Base Model class from which all models inherit
@@ -43,12 +46,253 @@ abstract class BaseModel
     }
 
     /**
+     * @param $oObj
+     * @param $sTable
+     *
+     * @return Retval
+     */
+    public function Insert(&$oObj, string $sTable = null): Retval
+    {
+        $aCols = $this->getColsFromTable($sTable);
+        if (!is_array($aCols)) {
+            // Uh oh, object name provided is not valid, return an error
+            $oRet = new Retval;
+            $oRet->addError(sprintf(
+                                'Unrecognized table provided to ' . get_called_class() . '::' . __FUNCTION__ . "($sTable)"
+                            ));
+        }
+        else {
+            // Try to validate the given object
+            $oRet = $this->Validate($oObj, $aCols);
+        }
+        if (!$oRet->hasFailure()) {
+            $oParams = new ParameterCollection();
+            $strSql = $this->GenerateInsert($oParams, $oObj, $sTable, $aCols);
+            try {
+                $oRet->set(
+                    $this->DB
+                        ->Prepare($strSql)
+                        ->BindParams($oParams)
+                        ->Execute()
+                );
+            } catch (DataException $e) {
+                if ($e->getCode() == self::UNIQUE_CONSTRAINT_VIOLATION) {
+                    $oRet->addError('Unable to insert, ' . $e->getMessage(), $e);
+                }
+                else {
+                    $oRet->addError('Unable to query database', $e);
+                }
+            }
+        }
+        if (!$oRet->hasFailure()) {
+            $strSql = 'SELECT LAST_INSERT_ID()';
+            try {
+                $oRet->set(
+                    $this->DB
+                        ->Prepare($strSql)
+                        ->Execute()
+                        ->GetScalar()
+                );
+            } catch (DataException $e) {
+                $oRet->addError('Unable to query database', $e);
+            }
+        }
+        if (!$oRet->hasFailure()) {
+            $sIdField = 'id';
+            foreach ($aCols as $sColName => $aCol) {
+                if (!empty($aCol[KEY_TYPE]) && $aCol[KEY_TYPE] == KEY_TYPE_PRIMARY) {
+                    $sIdField = $sColName;
+                    break;
+                }
+            }
+            $oObj->$sIdField = $oRet->get();
+        }
+
+        return $oRet;
+    }
+
+    /**
+     * @param string $sTable
+     *
+     * @return mixed
+     */
+    protected function getColsFromTable(string &$sTable = null): array
+    {
+        if (empty($sTable)) {
+            $sTable = static::TABLE_NAME;
+        }
+        if ($sTable === static::TABLE_NAME) {
+            return static::COLUMNS;
+        }
+        foreach (static::SUB_OBJECTS as $sSubObject => $aCols) {
+            if ($sSubObject === $sTable) {
+                return $aCols;
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Validates given array of values against the table definition
+     *
+     * @param object $oObj
+     * @param array  $aColumns
+     *
+     * @return Retval
+     * @throw RuntimeException
+     */
+    public function Validate(
+        $oObj,
+        array $aColumns = null): Retval
+    {
+        $aVars = (array) $oObj;
+        $oRetval = new Retval();
+        foreach ($aColumns ?: static::COLUMNS as $strCol => $aCol) {
+            if (isset($aCol[DB_REQUIRED]) &&
+                $aCol[DB_REQUIRED] === true &&
+                !isset($aVars[$strCol])
+            ) {
+                $oRetval->addError($strCol . ' is required.');
+            }
+
+            if (isset($aCol[COL_LENGTH]) &&
+                isset($aVars[$strCol]) &&
+                strlen($aVars[$strCol]) > $aCol[COL_LENGTH]
+            ) {
+                $oRetval->addError($strCol . ' is longer than max length (' . $aCol[COL_LENGTH] . ').');
+            }
+
+            if (isset($aCol[COL_TYPE]) &&
+                isset($aVars[$strCol])
+            ) {
+                switch ($aCol[COL_TYPE]) {
+                    case COL_TYPE_INTEGER:
+                        if (!is_numeric($aVars[$strCol]) ||
+                            (string) (int) $aVars[$strCol] !== (string) $aVars[$strCol]
+                        ) {
+                            $oRetval->addError($strCol . ' must be a valid integer.');
+                        }
+                        break;
+                    case COL_TYPE_BOOLEAN:
+                        if (!is_bool($aVars) &&
+                            (string) (bool) $aVars[$strCol] !== (string) $aVars[$strCol]
+                        ) {
+                            $oRetval->addError($strCol . ' must be a valid boolean.');
+                        }
+                        break;
+                    case COL_TYPE_DECIMAL:
+                        if (!is_numeric($aVars[$strCol]) ||
+                            !preg_match('/^[+\-]?(?:\d+(?:\.\d*)?|\.\d+)$/', trim($aVars[$strCol]))
+                        ) {
+                            $oRetval->addError($strCol . ' must be a valid decimal.');
+                        }
+                        break;
+                    case COL_TYPE_FIXED_STRING:
+                        if (!isset($aCol[COL_LENGTH]) || !is_int($aCol[COL_LENGTH])) {
+                            throw new RuntimeException('COL_TYPE_FIXED_STRING found with no defined or invalid col_length!');
+                        }
+                        elseif (strlen($aVars[$strCol]) !== $aCol[COL_LENGTH]) {
+                            $oRetval->addError($strCol . ' must be fixed length (' . $aCol[COL_LENGTH] . ').');
+                        }
+                        break;
+                }
+            }
+
+            if (isset($aCol[DB_VALIDATION]) &&
+                isset($aVars[$strCol]) &&
+                !preg_match($aCol[DB_VALIDATION], $aVars[$strCol])
+            ) {
+                $oRetval->addError($strCol . ' did not validate.');
+            }
+        }
+
+        return $oRetval;
+    }
+
+    /**
+     * Generates an INSERT INTO...VALUES... statement based on table
+     *   definition and given values to insert
+     *   Always sets created and modified to current date and time
+     *
+     * @param ParameterCollection $oParams
+     * @param object              $oObj
+     * @param null                $strTable
+     * @param array               $aColumns
+     *
+     * @return string
+     */
+    protected function GenerateInsert(
+        ParameterCollection &$oParams,
+        $oObj,
+        string $strTable = null,
+        array $aColumns = null): string
+    {
+        $aCols = [];
+        $aVals = [];
+        $aOpts = (array) $oObj;
+        foreach ($aColumns ?: static::COLUMNS as $name => $def) {
+            if (strtolower($name) == 'created' || strtolower($name) == 'modified') {
+                $aCols[] = sprintf('`%s`', $name);
+                $aVals[] = 'NOW()';
+            }
+            elseif (isset($aOpts[$name])) {
+                $aCols[] = sprintf('`%s`', $name);
+                $oParams->Add(new Parameter(
+                                  $name,
+                                  $aOpts[$name],
+                                  $this->getParamTypeFromColType($aOpts[$name], $def)
+                              ));
+                $aVals[] = ':' . $name;
+            }
+        }
+
+        return sprintf(
+            'INSERT INTO `%s` (%s) VALUES (%s)',
+            $strTable ?: static::TABLE_NAME,
+            implode(',', $aCols),
+            implode(',', $aVals)
+        );
+    }
+
+    /**
+     * Gets a DB_PARAM_* constant based on the COL_TYPE
+     *
+     * @param $val
+     * @param $def
+     *
+     * @return null|string
+     * @throws UnexpectedValueException
+     */
+    protected function getParamTypeFromColType($val, $def)
+    {
+        if (isset($def['nullable']) && $def['nullable'] && $val === null) {
+            return DB_PARAM_NULL;
+        }
+        elseif (isset($def[COL_TYPE])) {
+            if ($def[COL_TYPE] == COL_TYPE_BOOLEAN) {
+                return DB_PARAM_BOOL;
+            }
+            elseif ($def[COL_TYPE] == COL_TYPE_INTEGER) {
+                return DB_PARAM_INT;
+            }
+            elseif ($def[COL_TYPE] == COL_TYPE_DECIMAL) {
+                return DB_PARAM_DEC;
+            }
+            else {
+                return DB_PARAM_STR;
+            }
+        }
+        throw new UnexpectedValueException('Unknown column definition');
+    }
+
+    /**
      * @param array       $aOpts
      * @param string|null $sTable
      *
      * @return Retval
      */
-    public function Get(array $aOpts = [], string $sTable = '') : Retval
+    public function Get(array $aOpts = [], string $sTable = ''): Retval
     {
         $oRet = new Retval();
         $aCols = $this->getColsFromTable($sTable);
@@ -100,28 +344,6 @@ abstract class BaseModel
     }
 
     /**
-     * @param string $sTable
-     *
-     * @return mixed
-     */
-    protected function getColsFromTable(string &$sTable = null) : array
-    {
-        if (empty($sTable)) {
-            $sTable = static::TABLE_NAME;
-        }
-        if ($sTable === static::TABLE_NAME) {
-            return static::COLUMNS;
-        }
-        foreach (static::SUB_OBJECTS as $sSubObject => $aCols) {
-            if ($sSubObject === $sTable) {
-                return $aCols;
-            }
-        }
-
-        return [];
-    }
-
-    /**
      * Generates a where clause for a sql statement
      *
      * @param ParameterCollection $oParams
@@ -135,7 +357,7 @@ abstract class BaseModel
         ParameterCollection &$oParams,
         Array $aOpts,
         string $strColPrefix = '',
-        array $aColumns = null) : string
+        array $aColumns = null): string
     {
         $this->where(true);
         $sql = '';
@@ -228,7 +450,7 @@ abstract class BaseModel
      *
      * @return string
      */
-    private function where(bool $bReset = false) : string
+    protected function where(bool $bReset = false): string
     {
         static $bWhere;
         if ($bReset) {
@@ -246,225 +468,6 @@ abstract class BaseModel
     }
 
     /**
-     * Gets a DB_PARAM_* constant based on the COL_TYPE
-     *
-     * @param $val
-     * @param $def
-     *
-     * @return null|string
-     * @throws \UnexpectedValueException
-     */
-    private function getParamTypeFromColType($val, $def)
-    {
-        if (isset($def['nullable']) && $def['nullable'] && $val === null) {
-            return DB_PARAM_NULL;
-        }
-        elseif (isset($def[COL_TYPE])) {
-            if ($def[COL_TYPE] == COL_TYPE_BOOLEAN) {
-                return DB_PARAM_BOOL;
-            }
-            elseif ($def[COL_TYPE] == COL_TYPE_INTEGER) {
-                return DB_PARAM_INT;
-            }
-            elseif ($def[COL_TYPE] == COL_TYPE_DECIMAL) {
-                return DB_PARAM_DEC;
-            }
-            else {
-                return DB_PARAM_STR;
-            }
-        }
-        throw new \UnexpectedValueException('Unknown column definition');
-    }
-
-    /**
-     * @param $oObj
-     * @param $sTable
-     *
-     * @return Retval
-     */
-    public function Insert(&$oObj, string $sTable = null) : Retval
-    {
-        $aCols = $this->getColsFromTable($sTable);
-        if (!is_array($aCols)) {
-            // Uh oh, object name provided is not valid, return an error
-            $oRet = new Retval;
-            $oRet->addError(sprintf(
-                                'Unrecognized table provided to ' . get_called_class() . '::' . __FUNCTION__ . "($sTable)"
-                            ));
-        }
-        else {
-            // Try to validate the given object
-            $oRet = $this->Validate($oObj, $aCols);
-        }
-        if (!$oRet->hasFailure()) {
-            $oParams = new ParameterCollection();
-            $strSql = $this->GenerateInsert($oParams, $oObj, $sTable, $aCols);
-            try {
-                $oRet->set(
-                    $this->DB
-                        ->Prepare($strSql)
-                        ->BindParams($oParams)
-                        ->Execute()
-                );
-            } catch (DataException $e) {
-                if ($e->getCode() == self::UNIQUE_CONSTRAINT_VIOLATION) {
-                    $oRet->addError('Unable to insert, ' . $e->getMessage(), $e);
-                }
-                else {
-                    $oRet->addError('Unable to query database', $e);
-                }
-            }
-        }
-        if (!$oRet->hasFailure()) {
-            $strSql = 'SELECT LAST_INSERT_ID()';
-            try {
-                $oRet->set(
-                    $this->DB
-                        ->Prepare($strSql)
-                        ->Execute()
-                        ->GetScalar()
-                );
-            } catch (DataException $e) {
-                $oRet->addError('Unable to query database', $e);
-            }
-        }
-        if (!$oRet->hasFailure()) {
-            $sIdField = 'id';
-            foreach ($aCols as $sColName => $aCol) {
-                if (!empty($aCol[KEY_TYPE]) && $aCol[KEY_TYPE] == KEY_TYPE_PRIMARY) {
-                    $sIdField = $sColName;
-                    break;
-                }
-            }
-            $oObj->$sIdField = $oRet->get();
-        }
-
-        return $oRet;
-    }
-
-    /**
-     * Validates given array of values against the table definition
-     *
-     * @param object $oObj
-     * @param array  $aColumns
-     *
-     * @return Retval
-     * @throw RuntimeException
-     */
-    public function Validate(
-        $oObj,
-        array $aColumns = null) : Retval
-    {
-        $aVars = (array) $oObj;
-        $oRetval = new Retval();
-        foreach ($aColumns ?: static::COLUMNS as $strCol => $aCol) {
-            if (isset($aCol[DB_REQUIRED]) &&
-                $aCol[DB_REQUIRED] === true &&
-                !isset($aVars[$strCol])
-            ) {
-                $oRetval->addError($strCol . ' is required.');
-            }
-
-            if (isset($aCol[COL_LENGTH]) &&
-                isset($aVars[$strCol]) &&
-                strlen($aVars[$strCol]) > $aCol[COL_LENGTH]
-            ) {
-                $oRetval->addError($strCol . ' is longer than max length (' . $aCol[COL_LENGTH] . ').');
-            }
-
-            if (isset($aCol[COL_TYPE]) &&
-                isset($aVars[$strCol])
-            ) {
-                switch ($aCol[COL_TYPE]) {
-                    case COL_TYPE_INTEGER:
-                        if (!is_numeric($aVars[$strCol]) ||
-                            (string) (int) $aVars[$strCol] !== (string) $aVars[$strCol]
-                        ) {
-                            $oRetval->addError($strCol . ' must be a valid integer.');
-                        }
-                        break;
-                    case COL_TYPE_BOOLEAN:
-                        if (!is_bool($aVars) &&
-                            (string) (bool) $aVars[$strCol] !== (string) $aVars[$strCol]
-                        ) {
-                            $oRetval->addError($strCol . ' must be a valid boolean.');
-                        }
-                        break;
-                    case COL_TYPE_DECIMAL:
-                        if (!is_numeric($aVars[$strCol]) ||
-                            !preg_match('/^[+\-]?(?:\d+(?:\.\d*)?|\.\d+)$/', trim($aVars[$strCol]))
-                        ) {
-                            $oRetval->addError($strCol . ' must be a valid decimal.');
-                        }
-                        break;
-                    case COL_TYPE_FIXED_STRING:
-                        if (!isset($aCol[COL_LENGTH]) || !is_int($aCol[COL_LENGTH])) {
-                            throw new \RuntimeException('COL_TYPE_FIXED_STRING found with no defined or invalid col_length!');
-                        }
-                        elseif (strlen($aVars[$strCol]) !== $aCol[COL_LENGTH]) {
-                            $oRetval->addError($strCol . ' must be fixed length (' . $aCol[COL_LENGTH] . ').');
-                        }
-                        break;
-                }
-            }
-
-            if (isset($aCol[DB_VALIDATION]) &&
-                isset($aVars[$strCol]) &&
-                !preg_match($aCol[DB_VALIDATION], $aVars[$strCol])
-            ) {
-                $oRetval->addError($strCol . ' did not validate.');
-            }
-        }
-
-        return $oRetval;
-    }
-
-    /**
-     * Generates an INSERT INTO...VALUES... statement based on table
-     *   definition and given values to insert
-     *   Always sets created and modified to current date and time
-     *
-     * @param ParameterCollection $oParams
-     * @param object              $oObj
-     * @param null                $strTable
-     * @param array               $aColumns
-     *
-     * @return string
-     */
-    protected function GenerateInsert(
-        ParameterCollection &$oParams,
-        $oObj,
-        string $strTable = null,
-        array $aColumns = null) : string
-    {
-        $aCols = [];
-        $aVals = [];
-        $aOpts = (array) $oObj;
-        foreach ($aColumns ?: static::COLUMNS as $name => $def) {
-            if (strtolower($name) == 'created' || strtolower($name) == 'modified') {
-                $aCols[] = sprintf('`%s`', $name);
-                $aVals[] = 'NOW()';
-            }
-            elseif (isset($aOpts[$name])) {
-                $aCols[] = sprintf('`%s`', $name);
-                $oParams->Add(new Parameter(
-                                  $name,
-                                  $aOpts[$name],
-                                  $this->getParamTypeFromColType($aOpts[$name], $def)
-                              ));
-                $aVals[] = ':' . $name;
-            }
-        }
-
-        return sprintf(
-            'INSERT INTO `%s` (%s) VALUES (%s)',
-            $strTable ?: static::TABLE_NAME,
-            implode(',', $aCols),
-            implode(',', $aVals)
-        );
-    }
-
-    /**
      * Updates the root object by default, but can be passed
      *   the name of any sub-object to update that
      *
@@ -473,7 +476,7 @@ abstract class BaseModel
      *
      * @return Retval
      */
-    public function Update(&$oObj, string $sTable = null) : Retval
+    public function Update(&$oObj, string $sTable = null): Retval
     {
         $aCols = $this->getColsFromTable($sTable);
         if (!is_array($aCols)) {
@@ -526,7 +529,7 @@ abstract class BaseModel
         ParameterCollection &$oParams,
         $oObj,
         string $strTable = null,
-        array $aColumns = null) : string
+        array $aColumns = null): string
     {
         $strRet = sprintf(
             'UPDATE `%s` SET ',
@@ -559,6 +562,44 @@ abstract class BaseModel
         }
 
         return $strRet;
+    }
+
+    /**
+     * @param array  $aOpts
+     * @param string $sTable
+     *
+     * @return Retval
+     */
+    public function Delete(array $aOpts = [], string $sTable = ''): Retval
+    {
+        $oRet = new Retval();
+        $aCols = $this->getColsFromTable($sTable);
+        if (empty($aCols)) {
+            // Uh oh, object name provided is not valid, return an error
+            $oRet->addError(sprintf(
+                                'Unrecognized table provided to ' . get_called_class() . '::' . __FUNCTION__ . "($sTable)"
+                            ));
+
+            return $oRet;
+        }
+        $oParams = new ParameterCollection();
+        $sSql = sprintf(
+            'DELETE FROM `%s` %s',
+            $sTable,
+            $this->GenerateCriteria($oParams, $aOpts, '', $aCols)
+        );
+        try {
+            $oRet->set(
+                $this->DB
+                    ->Prepare($sSql)
+                    ->BindParams($oParams)
+                    ->Execute()
+                    ->RowCount());
+        } catch (DataException $e) {
+            $oRet->addError('Unable to query database', $e);
+        }
+
+        return $oRet;
     }
 
     public function VerifyModelDefinition()
@@ -599,9 +640,9 @@ abstract class BaseModel
      *
      * @return Retval
      */
-    private function verifyTableDefinition(
+    protected function verifyTableDefinition(
         string $sTable = null,
-        array $aColumns = null) : Retval
+        array $aColumns = null): Retval
     {
         $sTable = $sTable ?: static::TABLE_NAME;
         $aColumns = $aColumns ?: static::COLUMNS;
@@ -695,7 +736,7 @@ abstract class BaseModel
                             }
                         }
                         else {
-                            throw new \UnexpectedValueException(
+                            throw new UnexpectedValueException(
                                 'Bad column definition. COL_TYPE_STRING requires col_length be set.');
                         }
                         break;
@@ -707,7 +748,7 @@ abstract class BaseModel
                             }
                         }
                         else {
-                            throw new \UnexpectedValueException(
+                            throw new UnexpectedValueException(
                                 'Bad column definition. COL_TYPE_STRING requires col_length be set.');
                         }
                         break;
@@ -799,7 +840,7 @@ EOF
                 $this->DB->Query($strUpdate);
                 $aRet[] = $sTable . ' has been updated';
                 $oRetval->set($aRet);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $oRetval->addError('Error updating table ' . $sTable, $e);
             }
         }
@@ -816,9 +857,9 @@ EOF
      *
      * @return Retval
      */
-    private function verifyTableExistence(
+    protected function verifyTableExistence(
         string $sTable = null,
-        array $aColumns = null) : Retval
+        array $aColumns = null): Retval
     {
         $oRetval = new Retval();
         $strSql = sprintf("SHOW TABLES LIKE '%s'", $sTable ?: static::TABLE_NAME);
@@ -857,11 +898,11 @@ EOF
      * @param array  $aColumns
      *
      * @return string
-     * @throws \UnexpectedValueException
+     * @throws UnexpectedValueException
      */
     protected function GenerateCreateTable(
         string $sTable = null,
-        array $aColumns = null) : string
+        array $aColumns = null): string
     {
         if (strlen($sTable ?: static::TABLE_NAME) == 0
             || count($aColumns ?: static::COLUMNS) == 0
@@ -887,7 +928,7 @@ EOF
      *
      * @return string
      */
-    private function getColumnSqlFromDefinition(string $sCol, array $aCol) : string
+    protected function getColumnSqlFromDefinition(string $sCol, array $aCol): string
     {
         $sType = '';
         $sKey = '';
@@ -924,7 +965,7 @@ EOF
                     $sType = sprintf("VARCHAR(%d)", $aCol[COL_LENGTH]);
                 }
                 else {
-                    throw new \UnexpectedValueException(
+                    throw new UnexpectedValueException(
                         'Bad column definition. COL_TYPE_STRING requires col_length be set.');
                 }
                 break;
@@ -933,7 +974,7 @@ EOF
                     $sType = sprintf("CHAR(%d)", $aCol[COL_LENGTH]);
                 }
                 else {
-                    throw new \UnexpectedValueException(
+                    throw new UnexpectedValueException(
                         'Bad column definition. COL_TYPE_FIXED_STRING requires col_length be set.');
                 }
                 break;

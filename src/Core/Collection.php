@@ -2,6 +2,9 @@
 
 namespace Dero\Core;
 
+use Countable;
+use Iterator;
+
 /**
  * Class Collection
  *
@@ -16,8 +19,8 @@ namespace Dero\Core;
  * @package Dero\Core
  */
 class Collection implements
-    \Iterator,
-    \Countable
+    Iterator,
+    Countable
 {
     protected $items = [];
     protected $index = 0;
@@ -47,7 +50,7 @@ class Collection implements
      *
      * @see Iterator::key()
      */
-    public function key() : int
+    public function key(): int
     {
         return $this->index;
     }
@@ -77,7 +80,7 @@ class Collection implements
      *
      * @see Iterator::valid()
      */
-    public function valid() : bool
+    public function valid(): bool
     {
         return isset($this->items[$this->index]);
     }
@@ -87,7 +90,7 @@ class Collection implements
      *
      * @see Countable::count()
      */
-    public function count() : int
+    public function count(): int
     {
         return count($this->items);
     }
