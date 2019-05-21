@@ -375,15 +375,23 @@ abstract class BaseModel
                 elseif (is_array($aOpts[$name])) {
                     $i = 0;
                     $names = [];
+                    $bHasNull = false;
                     foreach ($aOpts[$name] as $val) {
+                        if (is_null($val)) {
+                            $bHasNull = true;
+                            continue;
+                        }
                         $oParams->Add(new Parameter($name . $i, $val, $type));
                         $names[] = $name . $i++;
                     }
-                    $sql .= sprintf('%s %s%s IN (:%s) ',
+                    $sql .= sprintf('%s (%s%s IN (:%s)%s) ',
                                     $this->where(),
                                     $strColPrefix,
                                     $name,
-                                    implode(',:', $names)
+                                    implode(',:', $names),
+                                    !$bHasNull ? '' : sprintf(' OR %s%s IS NULL',
+                                                              $strColPrefix,
+                                                              $name)
                     );
                 }
                 else {
